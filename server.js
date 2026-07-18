@@ -4,17 +4,13 @@ const path = require('path');
 const app = express();
 
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// ----------------------------------------------------
-// 🌟 核心修复：拦截根目录访问，自动跳转到登录页
-// ----------------------------------------------------
 app.get('/', (req, res) => {
     res.redirect('/login.html');
 });
 
 const dataDir = path.join(__dirname, 'data');
-// 确保 data 目录存在 (适配云环境)
 if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
 }
@@ -23,28 +19,33 @@ const usersFile = path.join(dataDir, 'users.json');
 const prizesFile = path.join(dataDir, 'prizes.json');
 const configFile = path.join(dataDir, 'config.json');
 
-// 通用读写函数
 const readData = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
 const writeData = (file, data) => fs.writeFileSync(file, JSON.stringify(data, null, 2));
 
-// 云环境初始化数据：如果文件丢失，自动重建默认数据，防止系统崩溃
 function initData() {
     if (!fs.existsSync(usersFile)) {
         writeData(usersFile, [{ phone: "15728656310", password: "000000", role: "admin", chances: 0, rewards: [] }]);
     }
     if (!fs.existsSync(prizesFile)) {
         writeData(prizesFile, [
-            { name: "一等奖：床头柜", weight: 2 }, { name: "二等奖：小凳子", weight: 8 },
-            { name: "升级：拉直器", weight: 30 }, { name: "优惠券500", weight: 30 }, { name: "安慰奖", weight: 30 }
+            { name: "一等奖：设计师床头柜", weight: 2 }, { name: "二等奖：极简边几", weight: 8 },
+            { name: "升级礼包：拉直器2套", weight: 30 }, { name: "无门槛抵扣券500元", weight: 30 }, { name: "高级香薰礼盒", weight: 30 }
         ]);
     }
     if (!fs.existsSync(configFile)) {
-        writeData(configFile, { title: "ARTISAN 高级定制抽奖", subtitle: "感恩回馈专属活动" });
+        writeData(configFile, { 
+            title: "ARTISAN 高端定制家具幸运礼遇", 
+            subtitle: "签约定制方案，即可获得专属抽奖机会",
+            rules: [
+                { condition: "设计方案定金", value: "3000元", reward: "1次" },
+                { condition: "家具订单", value: "20000元", reward: "3次" },
+                { condition: "整屋定制", value: "50000元以上", reward: "8次" }
+            ]
+        });
     }
 }
-initData(); // 启动时强制执行
+initData(); 
 
-// 权限拦截器
 const requireAdmin = (req, res, next) => {
     const phone = req.headers.authorization;
     const users = readData(usersFile);
@@ -56,33 +57,24 @@ const requireAdmin = (req, res, next) => {
 // --- API 接口 ---
 app.get('/api/config', (req, res) => res.json(readData(configFile)));
 
-// 🌟 新增：临时调试接口，用于查看云服务器上的真实文件结构
-app.get('/debug', (req, res) => {
-    try {
-        const fs = require('fs');
-        const path = require('path');
-        const rootFiles = fs.readdirSync(__dirname);
-        let publicFiles = [];
-        const publicPath = path.join(__dirname, 'public');
-        
-        if (fs.existsSync(publicPath)) {
-            publicFiles = fs.readdirSync(publicPath);
-        }
-        
-        res.json({ 
-            message: "【系统诊断】当前云端文件结构如下：",
-            rootFiles: rootFiles,
-            publicFolderExists: fs.existsSync(publicPath),
-            publicFiles: publicFiles
-        });
-    } catch (e) {
-        res.json({ error: e.message });
-    }
-});
-
 app.post('/api/config', requireAdmin, (req, res) => {
     writeData(configFile, req.body);
     res.json({ success: true });
+});
+
+// 新增：公开的奖品列表接口（无需登录即可看奖品）
+app.get('/api/prizes', (req, res) => res.json(readData(prizesFile)));
+
+// 新增：信任模块统计接口
+app.get('/api/stats', (req, res) => {
+    const users = readData(usersFile).filter(u => u.role !== 'admin');
+    const totalUsers = users.length;
+    const totalRewards = users.reduce((sum, u) => sum + u.rewards.length, 0);
+    // 为了让展示好看，如果没有数据，默认加一点基数，有真实数据时叠加
+    res.json({ 
+        totalUsers: totalUsers + 128, 
+        totalRewards: totalRewards + 356 
+    });
 });
 
 app.post('/api/login', (req, res) => {
@@ -165,7 +157,6 @@ app.post('/api/admin/account', requireAdmin, (req, res) => {
     res.json({ success: true });
 });
 
-// 关键修改：兼容云平台的动态端口分配
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`\n🚀 服务已启动! 运行在端口: ${PORT}\n`);

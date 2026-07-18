@@ -26,6 +26,18 @@
                     <input type="text" id="configSubtitle" class="w-full border p-2 rounded">
                 </div>
             </div>
+
+            <!-- 新增：收款弹窗配置 -->
+            <div class="flex gap-4 items-end mb-6 bg-gray-50 p-4 rounded border border-gray-100">
+                <div class="flex-2 w-2/3">
+                    <label class="block text-sm text-gray-600 mb-1">收款弹窗话术</label>
+                    <input type="text" id="configPaymentCopy" class="w-full border p-2 rounded" placeholder="例如：扫码支付后联系设计师录入次数">
+                </div>
+                <div class="flex-1 w-1/3">
+                    <label class="block text-sm text-gray-600 mb-1">收款码图片网络链接 (URL)</label>
+                    <input type="text" id="configQrCodeUrl" class="w-full border p-2 rounded" placeholder="以 http 开头的图片链接">
+                </div>
+            </div>
             
             <div class="mb-4">
                 <div class="flex justify-between items-center mb-2">
@@ -71,6 +83,8 @@
             const config = await cfgRes.json();
             document.getElementById('configTitle').value = config.title;
             document.getElementById('configSubtitle').value = config.subtitle;
+            document.getElementById('configPaymentCopy').value = config.paymentCopy || "";
+            document.getElementById('configQrCodeUrl').value = config.qrCodeUrl || "";
             currentRules = config.rules || [];
             renderRules();
 
@@ -100,7 +114,14 @@
         async function saveConfig() {
             const title = document.getElementById('configTitle').value;
             const subtitle = document.getElementById('configSubtitle').value;
-            await fetch('/api/config', { method: 'POST', headers, body: JSON.stringify({ title, subtitle, rules: currentRules }) });
+            const paymentCopy = document.getElementById('configPaymentCopy').value;
+            const qrCodeUrl = document.getElementById('configQrCodeUrl').value;
+            
+            await fetch('/api/config', { 
+                method: 'POST', 
+                headers, 
+                body: JSON.stringify({ title, subtitle, paymentCopy, qrCodeUrl, rules: currentRules }) 
+            });
             alert('品牌营销配置已保存！首页已实时更新。');
         }
 

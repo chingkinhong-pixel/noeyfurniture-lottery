@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抽奖活动</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .wheel-container { position: relative; width: 300px; height: 300px; margin: 0 auto; border-radius: 50%; border: 8px solid #2C2C2C; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .wheel { width: 100%; height: 100%; border-radius: 50%; transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99); background: #F5F5F0; }
+        .pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid #D93838; z-index: 10; filter: drop-shadow(0 4px 2px rgba(0,0,0,0.2)); }
+    </style>
+</head>
+<body class="bg-[#F5F5F0] min-h-screen font-sans text-gray-900">
+    <nav class="bg-white px-6 py-4 shadow-sm flex justify-between items-center">
+        <!-- 动态标题 -->
+        <div id="navTitle" class="text-xl font-bold tracking-widest text-[#2C2C2C]">加载中...</div>
+        <div class="flex items-center gap-4 text-sm">
+            <span>用户：<span id="userPhone" class="font-medium text-[#8B7355]"></span></span>
+            <button onclick="logout()" class="text-gray-400 hover:text-black">退出</button>
+        </div>
+    </nav>
+
+    <main class="max-w-md mx-auto mt-12 p-6 text-center">
+        <!-- 动态副标题 -->
+        <h2 id="pageSubtitle" class="text-gray-500 mb-8 tracking-widest">加载中...</h2>
+        
+        <div class="wheel-container mb-10">
+            <div class="pointer"></div>
+            <div id="wheel" class="wheel"></div>
+        </div>
+
+        <button id="drawBtn" onclick="startDraw()" class="bg-[#2C2C2C] text-white px-12 py-4 rounded-full text-lg font-medium hover:bg-black transition shadow-lg w-full mb-6">
+            开始抽奖 (剩余 <span id="chances">0</span> 次)
+        </button>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm text-left border border-gray-100">
+            <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <span class="w-1 h-4 bg-[#8B7355] inline-block"></span> 中奖记录
+            </h3>
+            <ul id="rewardsList" class="space-y-2 text-sm text-gray-600"></ul>
+        </div>
+    </main>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = '/login.html';
+        const headers = { 'Authorization': token };
+        let isDrawing = false;
+        let currentDegree = 0;
+        let prizes = [];
+
+        async function init() {
+            // 加载全局配置设置页面文本
+            try {
+                const cfgRes = await fetch('/api/config');
+                const config = await cfgRes.json();
+                document.getElementById('navTitle').innerText = config.title;
+                document.getElementById('pageSubtitle').innerText = config.subtitle;
+                document.title = config.title;
+            } catch (e) {}
+
+            // 拉取用户数据和奖品数据（通过特殊的管理员接口借用奖品列表）
+            const [userRes, adminRes] = await Promise.all([
+                fetch('/api/user', { headers }),
+                fetch('/api/admin/data', { headers: { 'Authorization': '15728656310' } }) // 仅为获取转盘切片借用
+            ]);
+            
+            if (userRes.status === 404 || userRes.status === 403) return logout();
+            
+            const user = await userRes.json();
+            const data = await adminRes.json();
+            prizes = data.prizes;
+            
+            document.getElementById('userPhone').innerText = user.phone;
+            updateUserUI(user);
+            renderWheel();
+        }
+
+        function updateUserUI(user) {
+            document.getElementById('chances').innerText = user.chances;
+            document.getElementById('rewardsList').innerHTML = user.rewards.length 
+                ? user.rewards.map(r => `<li>${r.time.split(' ')[0]} - <span class="font-medium text-[#8B7355]">${r.name}</span></li>`).join('') 
+                : '<li class="text-gray-400">暂无中奖记录</li>';
+            document.getElementById('drawBtn').disabled = user.chances <= 0;
+            document.getElementById('drawBtn').style.opacity = user.chances <= 0 ? '0.5' : '1';
+        }
+
+        function renderWheel() {
+            const wheel = document.getElementById('wheel');
+            const sliceAngle = 360 / prizes.length;
+            const colors = ['#F5F5F0', '#EAEAEA'];
+            
+            wheel.innerHTML = prizes.map((prize, i) => {
+                const rotate = sliceAngle * i;
+                const skew = 90 - sliceAngle;
+                return `<div style="position:absolute; width:50%; height:50%; top:0; right:0; transform-origin:0% 100%; transform:rotate(${rotate}deg) skewY(-${skew}deg); background:${colors[i%2]}; border: 1px solid rgba(0,0,0,0.05);"></div>
+                        <div style="position:absolute; width:100%; height:100%; top:0; left:0; transform:rotate(${rotate + sliceAngle/2}deg); text-align:center; padding-top:20px; font-weight:bold; font-size:12px; color:#333; pointer-events:none;">${prize.name}</div>`;
+            }).join('');
+        }
+
+        async function startDraw() {
+            if (isDrawing || document.getElementById('chances').innerText === '0') return;
+            isDrawing = true;
+
+            const res = await fetch('/api/draw', { method: 'POST', headers });
+            const data = await res.json();
+            
+            if (data.error) { alert(data.error); isDrawing = false; return; }
+
+            const targetIndex = prizes.findIndex(p => p.name === data.prize.name);
+            const sliceAngle = 360 / prizes.length;
+            // 计算旋转角度：确保指针落在目标扇形的中间，并多转 5 圈 (1800度) 增加动画效果
+            const targetDegree = 360 - (targetIndex * sliceAngle + sliceAngle / 2);
+            currentDegree += 1800 + (targetDegree - (currentDegree % 360));
+
+            const wheel = document.getElementById('wheel');
+            wheel.style.transform = `rotate(${currentDegree}deg)`;
+
+            setTimeout(() => {
+                alert(`🎉 恭喜您抽中了：${data.prize.name}`);
+                updateUserUI(data.user);
+                isDrawing = false;
+            }, 4200);
+        }
+
+        function logout() { localStorage.removeItem('token'); window.location.href = '/login.html'; }
+        init();
+    </script>
+</body>
+</html>

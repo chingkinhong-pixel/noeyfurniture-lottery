@@ -56,6 +56,30 @@ const requireAdmin = (req, res, next) => {
 // --- API 接口 ---
 app.get('/api/config', (req, res) => res.json(readData(configFile)));
 
+// 🌟 新增：临时调试接口，用于查看云服务器上的真实文件结构
+app.get('/debug', (req, res) => {
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const rootFiles = fs.readdirSync(__dirname);
+        let publicFiles = [];
+        const publicPath = path.join(__dirname, 'public');
+        
+        if (fs.existsSync(publicPath)) {
+            publicFiles = fs.readdirSync(publicPath);
+        }
+        
+        res.json({ 
+            message: "【系统诊断】当前云端文件结构如下：",
+            rootFiles: rootFiles,
+            publicFolderExists: fs.existsSync(publicPath),
+            publicFiles: publicFiles
+        });
+    } catch (e) {
+        res.json({ error: e.message });
+    }
+});
+
 app.post('/api/config', requireAdmin, (req, res) => {
     writeData(configFile, req.body);
     res.json({ success: true });

@@ -13,37 +13,48 @@
             <button onclick="logout()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">退出登录</button>
         </div>
 
-        <!-- 全局页面设置 -->
+        <!-- 全局页面设置 (修改了这里，增加规则管理) -->
         <div class="bg-white p-6 rounded-lg shadow-sm mb-8 border-l-4 border-blue-500">
-            <h2 class="text-lg font-bold mb-4">全局页面设置 (前端展示)</h2>
-            <div class="flex gap-4 items-end">
+            <h2 class="text-lg font-bold mb-4">品牌营销与规则配置</h2>
+            <div class="flex gap-4 items-end mb-6">
                 <div class="flex-1">
-                    <label class="block text-sm text-gray-600 mb-1">大标题名称</label>
+                    <label class="block text-sm text-gray-600 mb-1">活动大标题</label>
                     <input type="text" id="configTitle" class="w-full border p-2 rounded">
                 </div>
                 <div class="flex-1">
-                    <label class="block text-sm text-gray-600 mb-1">副标题描述</label>
+                    <label class="block text-sm text-gray-600 mb-1">活动副标题</label>
                     <input type="text" id="configSubtitle" class="w-full border p-2 rounded">
                 </div>
-                <button onclick="saveConfig()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">保存设置</button>
+            </div>
+            
+            <div class="mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <label class="block text-sm text-gray-600">获取抽奖机会规则配置 (首页展示)</label>
+                    <button onclick="addRule()" class="text-xs bg-gray-200 px-2 py-1 rounded">添加一条规则</button>
+                </div>
+                <div id="rulesList" class="space-y-2"></div>
+            </div>
+
+            <div class="text-right">
+                <button onclick="saveConfig()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">保存营销配置</button>
             </div>
         </div>
 
         <!-- 奖品管理 -->
         <div class="bg-white p-6 rounded-lg shadow-sm mb-8">
             <div class="flex justify-between mb-4">
-                <h2 class="text-lg font-bold">奖品与概率配置</h2>
+                <h2 class="text-lg font-bold">奖品与概率配置 (首页也会展示奖品)</h2>
                 <button onclick="addPrize()" class="bg-black text-white px-4 py-1 rounded">新增奖品</button>
             </div>
             <div id="prizesList" class="space-y-3"></div>
-            <button onclick="savePrizes()" class="mt-4 bg-[#8B7355] text-white px-6 py-2 rounded">保存奖品修改</button>
+            <button onclick="savePrizes()" class="mt-4 bg-[#8B7355] text-white px-6 py-2 rounded hover:bg-[#725e45]">保存奖品修改</button>
         </div>
 
         <!-- 用户管理 -->
         <div class="bg-white p-6 rounded-lg shadow-sm">
-            <h2 class="text-lg font-bold mb-4">客户数据 (可修改抽奖次数)</h2>
+            <h2 class="text-lg font-bold mb-4">客户资产管理</h2>
             <div id="usersList" class="space-y-3"></div>
-            <button onclick="saveUsers()" class="mt-4 bg-[#8B7355] text-white px-6 py-2 rounded">保存次数修改</button>
+            <button onclick="saveUsers()" class="mt-4 bg-[#8B7355] text-white px-6 py-2 rounded hover:bg-[#725e45]">保存次数修改</button>
         </div>
     </div>
 
@@ -52,6 +63,7 @@
         if (!token) window.location.href = '/login.html';
         const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
         let currentData = { prizes: [], users: [] };
+        let currentRules = [];
 
         async function init() {
             // 加载配置
@@ -59,6 +71,8 @@
             const config = await cfgRes.json();
             document.getElementById('configTitle').value = config.title;
             document.getElementById('configSubtitle').value = config.subtitle;
+            currentRules = config.rules || [];
+            renderRules();
 
             // 加载数据
             const res = await fetch('/api/admin/data', { headers });
@@ -71,17 +85,29 @@
             renderUsers();
         }
 
+        function renderRules() {
+            document.getElementById('rulesList').innerHTML = currentRules.map((r, i) => `
+                <div class="flex gap-2 items-center bg-gray-50 p-2 rounded">
+                    <input type="text" value="${r.condition}" onchange="currentRules[${i}].condition=this.value" class="flex-1 border p-1 text-sm" placeholder="条件，如：设计方案定金">
+                    <input type="text" value="${r.value}" onchange="currentRules[${i}].value=this.value" class="flex-1 border p-1 text-sm" placeholder="金额，如：3000元">
+                    <input type="text" value="${r.reward}" onchange="currentRules[${i}].reward=this.value" class="w-24 border p-1 text-sm" placeholder="奖励，如：1次">
+                    <button onclick="currentRules.splice(${i}, 1); renderRules()" class="text-red-500 text-sm">删除</button>
+                </div>
+            `).join('');
+        }
+        function addRule() { currentRules.push({ condition: "新门槛", value: "0元", reward: "1次" }); renderRules(); }
+
         async function saveConfig() {
             const title = document.getElementById('configTitle').value;
             const subtitle = document.getElementById('configSubtitle').value;
-            await fetch('/api/config', { method: 'POST', headers, body: JSON.stringify({ title, subtitle }) });
-            alert('页面设置已保存！普通用户刷新页面即可看到新标题。');
+            await fetch('/api/config', { method: 'POST', headers, body: JSON.stringify({ title, subtitle, rules: currentRules }) });
+            alert('品牌营销配置已保存！首页已实时更新。');
         }
 
         function renderPrizes() {
             document.getElementById('prizesList').innerHTML = currentData.prizes.map((p, i) => `
                 <div class="flex gap-4 items-center bg-gray-50 p-3 rounded">
-                    <input type="text" value="${p.name}" onchange="currentData.prizes[${i}].name=this.value" class="flex-1 border p-1" placeholder="奖品名称">
+                    <input type="text" value="${p.name}" onchange="currentData.prizes[${i}].name=this.value" class="flex-1 border p-1" placeholder="奖品名称 (首页展示)">
                     <input type="number" value="${p.weight}" onchange="currentData.prizes[${i}].weight=Number(this.value)" class="w-24 border p-1" placeholder="权重">
                     <button onclick="currentData.prizes.splice(${i}, 1); renderPrizes()" class="text-red-500">删除</button>
                 </div>

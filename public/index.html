@@ -104,6 +104,21 @@
         </section>
     </main>
 
+    <!-- 支付与营销弹窗 (新增) -->
+    <div id="paymentModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+        <div class="bg-[#F9F8F6] rounded-xl p-8 max-w-sm w-full mx-4 text-center transform scale-95 transition-transform duration-300 relative border border-[#EAE5D9] shadow-2xl" id="paymentModalContent">
+            <button onclick="closePaymentModal()" class="absolute top-4 right-4 text-gray-400 hover:text-black text-2xl leading-none">&times;</button>
+            <h3 class="text-xl font-bold serif-font text-[#1A1A1A] mb-3">锁定尊享礼遇</h3>
+            <p id="modalPaymentCopy" class="text-sm text-gray-600 mb-6 leading-relaxed">
+                <!-- 话术由JS动态加载 -->
+            </p>
+            <div class="border-4 border-white shadow-sm p-2 bg-white inline-block mb-6 rounded-lg">
+                <img id="modalQrCode" src="" alt="收款码" class="w-48 h-48 object-cover">
+            </div>
+            <p class="text-xs text-gray-400 tracking-widest uppercase">Artisan Exclusive</p>
+        </div>
+    </div>
+
     <script>
         const token = localStorage.getItem('token');
         if (!token) window.location.href = '/login.html';
@@ -121,6 +136,10 @@
                 document.getElementById('pageSubtitle').innerText = config.subtitle;
                 document.title = config.title;
                 renderRules(config.rules);
+
+                // 新增：加载营销弹窗配置 (如果没有则使用默认提示)
+                document.getElementById('modalPaymentCopy').innerText = config.paymentCopy || "尊享专属设计方案，支付定金即刻解锁至臻礼遇。扫码支付后，请联系您的专属设计师为您录入抽奖次数。";
+                document.getElementById('modalQrCode').src = config.qrCodeUrl || "https://placehold.co/400x400/8C6A4F/FFF?text=请前往后台配置收款码";
 
                 // 2. 获取信任模块数据
                 const statsRes = await fetch('/api/stats');
@@ -154,9 +173,27 @@
                 <div class="premium-card p-6 text-center hover:shadow-lg transition-shadow duration-300">
                     <div class="text-sm text-gray-500 mb-1">${rule.condition}</div>
                     <div class="text-xl serif-font text-[#1A1A1A] my-3">${rule.value}</div>
-                    <div class="accent-bg text-white py-1 px-4 inline-block text-xs tracking-wider">获赠 ${rule.reward} 机会</div>
+                    <button onclick="showPaymentModal()" class="accent-bg text-white py-2 px-6 rounded-sm hover:bg-[#725e45] transition-all shadow-md inline-block text-xs tracking-wider cursor-pointer active:scale-95">
+                        立即锁定 ${rule.reward}
+                    </button>
                 </div>
             `).join('');
+        }
+
+        // 新增：控制弹窗开关的函数
+        function showPaymentModal() {
+            const modal = document.getElementById('paymentModal');
+            modal.classList.remove('hidden');
+            void modal.offsetWidth; // 触发浏览器重排，保证动画执行
+            modal.classList.remove('opacity-0');
+            document.getElementById('paymentModalContent').classList.remove('scale-95');
+        }
+
+        function closePaymentModal() {
+            const modal = document.getElementById('paymentModal');
+            modal.classList.add('opacity-0');
+            document.getElementById('paymentModalContent').classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300); // 等待过渡动画完成
         }
 
         function renderPrizesShowcase(prizesList) {

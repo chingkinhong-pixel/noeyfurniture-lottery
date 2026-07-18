@@ -4,10 +4,19 @@ const path = require('path');
 const app = express();
 
 app.use(express.json());
-app.use(express.static('public'));
+
+// 修正：强制获取 public 文件夹的绝对路径，防止在云端找错文件夹
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ----------------------------------------------------
+// 🌟 核心修复点 🌟 
+// 告诉服务器，如果有人直接访问网址根路径 "/", 就自动跳转到登录页
+// ----------------------------------------------------
+app.get('/', (req, res) => {
+    res.redirect('/login.html');
+});
 
 const dataDir = path.join(__dirname, 'data');
-// 确保 data 目录存在 (适配云环境)
 if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
 }
@@ -139,3 +148,12 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`\n🚀 服务已启动! 运行在端口: ${PORT}\n`);
 });
+```eof
+
+### 重新生效步骤：
+1. 用上述代码覆盖并保存你本地的 `server.js` 文件。
+2. 打开浏览器去到你在 [GitHub 的仓库页面](https://github.com/)。
+3. 点击 `Add file` -> `Upload files`。
+4. 把更新好的 `server.js` 拖进去上传，点绿色按钮提交（Commit）。
+5. **最神奇的一步**：你不需要去 Render 上点任何东西。Render 监测到你 GitHub 代码更新后，会自动重新构建部署（大约等 1~2 分钟）。
+6. 去访问你的网址：`[https://artisan-lottery.onrender.com](https://artisan-lottery.onrender.com)` 即可！

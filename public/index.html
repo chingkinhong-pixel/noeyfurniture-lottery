@@ -3,43 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>抽奖活动</title>
+    <title>尊享礼遇</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        .wheel-container { position: relative; width: 300px; height: 300px; margin: 0 auto; border-radius: 50%; border: 8px solid #2C2C2C; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .wheel { width: 100%; height: 100%; border-radius: 50%; transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99); background: #F5F5F0; }
-        .pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid #D93838; z-index: 10; filter: drop-shadow(0 4px 2px rgba(0,0,0,0.2)); }
+        body { background-color: #F9F8F6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #2C2C2C; }
+        .serif-font { font-family: 'Noto Serif SC', serif; }
+        .accent-color { color: #8C6A4F; }
+        .accent-bg { background-color: #8C6A4F; }
+        
+        .wheel-container { position: relative; width: 320px; height: 320px; margin: 0 auto; border-radius: 50%; border: 6px solid #1A1A1A; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.08); }
+        .wheel { width: 100%; height: 100%; border-radius: 50%; transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99); background: #FFF; }
+        .pointer { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 16px solid transparent; border-right: 16px solid transparent; border-top: 32px solid #1A1A1A; z-index: 10; filter: drop-shadow(0 4px 2px rgba(0,0,0,0.2)); }
+        
+        .premium-card { background: white; border: 1px solid #EAE5D9; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); }
     </style>
 </head>
-<body class="bg-[#F5F5F0] min-h-screen font-sans text-gray-900">
-    <nav class="bg-white px-6 py-4 shadow-sm flex justify-between items-center">
-        <!-- 动态标题 -->
-        <div id="navTitle" class="text-xl font-bold tracking-widest text-[#2C2C2C]">加载中...</div>
+<body class="min-h-screen">
+    <!-- 顶部导航 -->
+    <nav class="bg-white/80 backdrop-blur-md px-6 py-4 shadow-sm flex justify-between items-center sticky top-0 z-50">
+        <div class="text-xl font-bold tracking-widest uppercase serif-font">ARTISAN</div>
         <div class="flex items-center gap-4 text-sm">
-            <span>用户：<span id="userPhone" class="font-medium text-[#8B7355]"></span></span>
-            <button onclick="logout()" class="text-gray-400 hover:text-black">退出</button>
+            <span class="text-gray-500">尊敬的：<span id="userPhone" class="font-bold text-black"></span></span>
+            <button onclick="logout()" class="text-gray-400 hover:text-black transition">退出</button>
         </div>
     </nav>
 
-    <main class="max-w-md mx-auto mt-12 p-6 text-center">
-        <!-- 动态副标题 -->
-        <h2 id="pageSubtitle" class="text-gray-500 mb-8 tracking-widest">加载中...</h2>
-        
-        <div class="wheel-container mb-10">
-            <div class="pointer"></div>
-            <div id="wheel" class="wheel"></div>
-        </div>
+    <main class="max-w-4xl mx-auto pb-20">
+        <!-- 一、品牌活动头部 -->
+        <header class="text-center py-16 px-4">
+            <div class="inline-block text-xs uppercase tracking-[0.2em] text-gray-400 mb-4 border border-gray-300 px-3 py-1">Exclusive Event</div>
+            <h1 id="pageTitle" class="text-3xl md:text-4xl font-bold tracking-wider serif-font mb-4 text-[#1A1A1A]">加载中...</h1>
+            <p id="pageSubtitle" class="text-gray-500 tracking-widest text-sm md:text-base">...</p>
+        </header>
 
-        <button id="drawBtn" onclick="startDraw()" class="bg-[#2C2C2C] text-white px-12 py-4 rounded-full text-lg font-medium hover:bg-black transition shadow-lg w-full mb-6">
-            开始抽奖 (剩余 <span id="chances">0</span> 次)
-        </button>
+        <!-- 四、信任背书模块 -->
+        <section class="flex justify-center gap-12 text-center mb-16 border-y border-[#EAE5D9] py-8 mx-4">
+            <div>
+                <div class="text-3xl font-serif text-[#1A1A1A] mb-1" id="statUsers">-</div>
+                <div class="text-xs text-gray-400 tracking-widest">尊贵客户已参与</div>
+            </div>
+            <div class="w-px bg-[#EAE5D9]"></div>
+            <div>
+                <div class="text-3xl font-serif text-[#1A1A1A] mb-1" id="statRewards">-</div>
+                <div class="text-xs text-gray-400 tracking-widest">份高端礼遇已送出</div>
+            </div>
+        </section>
 
-        <div class="bg-white p-6 rounded-xl shadow-sm text-left border border-gray-100">
-            <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <span class="w-1 h-4 bg-[#8B7355] inline-block"></span> 中奖记录
-            </h3>
-            <ul id="rewardsList" class="space-y-2 text-sm text-gray-600"></ul>
-        </div>
+        <!-- 二、活动规则模块 -->
+        <section class="px-4 mb-16">
+            <h2 class="text-center text-lg serif-font tracking-widest mb-8 flex items-center justify-center gap-4">
+                <span class="w-8 h-px bg-gray-300"></span>
+                如何获得礼遇机会
+                <span class="w-8 h-px bg-gray-300"></span>
+            </h2>
+            <div id="rulesContainer" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- 规则由JS动态渲染 -->
+            </div>
+        </section>
+
+        <!-- 三、奖品展示模块 -->
+        <section class="px-4 mb-16">
+            <h2 class="text-center text-lg serif-font tracking-widest mb-8 flex items-center justify-center gap-4">
+                <span class="w-8 h-px bg-gray-300"></span>
+                本期致臻礼品
+                <span class="w-8 h-px bg-gray-300"></span>
+            </h2>
+            <div id="prizesShowcase" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <!-- 奖品由JS动态渲染 -->
+            </div>
+        </section>
+
+        <!-- 核心抽奖区域 -->
+        <section class="premium-card p-8 mx-4 mb-12 text-center relative overflow-hidden">
+            <!-- 装饰背景 -->
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-[#8C6A4F] to-transparent opacity-50"></div>
+            
+            <h2 class="text-xl serif-font tracking-widest mb-10 mt-4">开启您的专属礼遇</h2>
+            
+            <div class="wheel-container mb-12">
+                <div class="pointer"></div>
+                <div id="wheel" class="wheel"></div>
+                <!-- 轮盘中心点 -->
+                <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-[#1A1A1A] border-4 border-white rounded-full z-20"></div>
+            </div>
+
+            <button id="drawBtn" onclick="startDraw()" class="bg-[#1A1A1A] text-white px-12 py-4 rounded-none text-lg tracking-widest hover:bg-[#8C6A4F] transition-colors duration-300 shadow-xl mb-6 w-full md:w-auto min-w-[280px]">
+                立即启封礼遇 (剩余 <span id="chances" class="font-serif">0</span> 次)
+            </button>
+        </section>
+
+        <!-- 中奖记录 -->
+        <section class="px-4">
+            <div class="premium-card p-6">
+                <h3 class="font-bold text-gray-800 mb-6 flex items-center gap-3 serif-font">
+                    <span class="w-1 h-4 accent-bg inline-block"></span> 您的获赠记录
+                </h3>
+                <ul id="rewardsList" class="space-y-4 text-sm text-gray-600"></ul>
+            </div>
+        </section>
     </main>
 
     <script>
@@ -51,51 +113,99 @@
         let prizes = [];
 
         async function init() {
-            // 加载全局配置设置页面文本
             try {
+                // 1. 获取全局配置 (包含规则)
                 const cfgRes = await fetch('/api/config');
                 const config = await cfgRes.json();
-                document.getElementById('navTitle').innerText = config.title;
+                document.getElementById('pageTitle').innerText = config.title;
                 document.getElementById('pageSubtitle').innerText = config.subtitle;
                 document.title = config.title;
-            } catch (e) {}
+                renderRules(config.rules);
 
-            // 拉取用户数据和奖品数据（通过特殊的管理员接口借用奖品列表）
-            const [userRes, adminRes] = await Promise.all([
-                fetch('/api/user', { headers }),
-                fetch('/api/admin/data', { headers: { 'Authorization': '15728656310' } }) // 仅为获取转盘切片借用
-            ]);
-            
-            if (userRes.status === 404 || userRes.status === 403) return logout();
-            
-            const user = await userRes.json();
-            const data = await adminRes.json();
-            prizes = data.prizes;
-            
-            document.getElementById('userPhone').innerText = user.phone;
-            updateUserUI(user);
-            renderWheel();
+                // 2. 获取信任模块数据
+                const statsRes = await fetch('/api/stats');
+                const stats = await statsRes.json();
+                document.getElementById('statUsers').innerText = stats.totalUsers;
+                document.getElementById('statRewards').innerText = stats.totalRewards;
+
+                // 3. 获取公开的奖品列表并展示
+                const prizeRes = await fetch('/api/prizes');
+                prizes = await prizeRes.json();
+                renderPrizesShowcase(prizes);
+                renderWheel(prizes);
+
+                // 4. 获取当前用户数据
+                const userRes = await fetch('/api/user', { headers });
+                if (userRes.status === 404 || userRes.status === 403) return logout();
+                const user = await userRes.json();
+                
+                document.getElementById('userPhone').innerText = user.phone.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2");
+                updateUserUI(user);
+
+            } catch (e) {
+                console.error("加载数据失败", e);
+            }
+        }
+
+        function renderRules(rules) {
+            if(!rules || rules.length === 0) return;
+            const container = document.getElementById('rulesContainer');
+            container.innerHTML = rules.map(rule => `
+                <div class="premium-card p-6 text-center hover:shadow-lg transition-shadow duration-300">
+                    <div class="text-sm text-gray-500 mb-1">${rule.condition}</div>
+                    <div class="text-xl serif-font text-[#1A1A1A] my-3">${rule.value}</div>
+                    <div class="accent-bg text-white py-1 px-4 inline-block text-xs tracking-wider">获赠 ${rule.reward} 机会</div>
+                </div>
+            `).join('');
+        }
+
+        function renderPrizesShowcase(prizesList) {
+            const container = document.getElementById('prizesShowcase');
+            container.innerHTML = prizesList.map(p => `
+                <div class="bg-white border border-[#EAE5D9] p-4 text-center group hover:border-[#8C6A4F] transition-colors duration-300">
+                    <div class="w-10 h-10 mx-auto bg-gray-50 flex items-center justify-center rounded-full mb-3 group-hover:bg-[#8C6A4F] transition-colors">
+                        <span class="text-gray-400 group-hover:text-white text-lg">✦</span>
+                    </div>
+                    <div class="text-sm text-[#1A1A1A] font-medium leading-snug">${p.name}</div>
+                </div>
+            `).join('');
         }
 
         function updateUserUI(user) {
             document.getElementById('chances').innerText = user.chances;
             document.getElementById('rewardsList').innerHTML = user.rewards.length 
-                ? user.rewards.map(r => `<li>${r.time.split(' ')[0]} - <span class="font-medium text-[#8B7355]">${r.name}</span></li>`).join('') 
-                : '<li class="text-gray-400">暂无中奖记录</li>';
-            document.getElementById('drawBtn').disabled = user.chances <= 0;
-            document.getElementById('drawBtn').style.opacity = user.chances <= 0 ? '0.5' : '1';
+                ? user.rewards.map(r => `
+                    <li class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                        <span class="font-medium text-[#1A1A1A]">${r.name}</span>
+                        <span class="text-xs text-gray-400">${r.time}</span>
+                    </li>`).join('') 
+                : '<li class="text-gray-400 py-4 text-center">空空如也，静候佳音</li>';
+            
+            const btn = document.getElementById('drawBtn');
+            if (user.chances <= 0) {
+                btn.disabled = true;
+                btn.classList.add('bg-gray-300', 'cursor-not-allowed');
+                btn.classList.remove('bg-[#1A1A1A]', 'hover:bg-[#8C6A4F]');
+            } else {
+                btn.disabled = false;
+                btn.classList.remove('bg-gray-300', 'cursor-not-allowed');
+                btn.classList.add('bg-[#1A1A1A]', 'hover:bg-[#8C6A4F]');
+            }
         }
 
-        function renderWheel() {
+        function renderWheel(prizeList) {
             const wheel = document.getElementById('wheel');
-            const sliceAngle = 360 / prizes.length;
-            const colors = ['#F5F5F0', '#EAEAEA'];
+            const sliceAngle = 360 / prizeList.length;
+            const colors = ['#F9F8F6', '#FFFFFF'];
             
-            wheel.innerHTML = prizes.map((prize, i) => {
+            wheel.innerHTML = prizeList.map((prize, i) => {
                 const rotate = sliceAngle * i;
                 const skew = 90 - sliceAngle;
-                return `<div style="position:absolute; width:50%; height:50%; top:0; right:0; transform-origin:0% 100%; transform:rotate(${rotate}deg) skewY(-${skew}deg); background:${colors[i%2]}; border: 1px solid rgba(0,0,0,0.05);"></div>
-                        <div style="position:absolute; width:100%; height:100%; top:0; left:0; transform:rotate(${rotate + sliceAngle/2}deg); text-align:center; padding-top:20px; font-weight:bold; font-size:12px; color:#333; pointer-events:none;">${prize.name}</div>`;
+                return `
+                    <div style="position:absolute; width:50%; height:50%; top:0; right:0; transform-origin:0% 100%; transform:rotate(${rotate}deg) skewY(-${skew}deg); background:${colors[i%2]};"></div>
+                    <div style="position:absolute; width:100%; height:100%; top:0; left:0; transform:rotate(${rotate + sliceAngle/2}deg); text-align:center; padding-top:25px; font-weight:500; font-size:12px; color:#4A4A4A; pointer-events:none; letter-spacing:1px; z-index:10;">
+                        ${prize.name.substring(0, 6)}${prize.name.length>6?'...':''}
+                    </div>`;
             }).join('');
         }
 
@@ -110,7 +220,6 @@
 
             const targetIndex = prizes.findIndex(p => p.name === data.prize.name);
             const sliceAngle = 360 / prizes.length;
-            // 计算旋转角度：确保指针落在目标扇形的中间，并多转 5 圈 (1800度) 增加动画效果
             const targetDegree = 360 - (targetIndex * sliceAngle + sliceAngle / 2);
             currentDegree += 1800 + (targetDegree - (currentDegree % 360));
 
@@ -118,9 +227,13 @@
             wheel.style.transform = `rotate(${currentDegree}deg)`;
 
             setTimeout(() => {
-                alert(`🎉 恭喜您抽中了：${data.prize.name}`);
+                alert(`🎊 尊享好礼：${data.prize.name}\n请联系专属设计师为您兑现。`);
                 updateUserUI(data.user);
                 isDrawing = false;
+                
+                // 更新实时统计数字
+                const el = document.getElementById('statRewards');
+                el.innerText = parseInt(el.innerText) + 1;
             }, 4200);
         }
 

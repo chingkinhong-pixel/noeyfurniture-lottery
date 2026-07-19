@@ -13,7 +13,6 @@ app.get('/', (req, res) => {
 // ==========================================
 // 1. 数据库连接设置
 // ==========================================
-// 👉 这里的字符串是你本地测试用的，在Render部署时，我们会通过环境变量覆盖它
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://你的账号:你的密码@cluster0.xxxx.mongodb.net/lottery?retryWrites=true&w=majority";
 
 mongoose.connect(MONGODB_URI)
@@ -44,7 +43,12 @@ const configSchema = new mongoose.Schema({
     subtitle: String,
     paymentCopy: String,
     qrCodeUrl: String,
-    rules: Array
+    rules: Array,
+    // 新增：高端品牌资产字段
+    brandPhilosophy: String,
+    logoColorUrl: String,
+    logoBlackUrl: String,
+    logoWhiteUrl: String
 });
 const Config = mongoose.model('Config', configSchema);
 
@@ -59,30 +63,37 @@ async function initData() {
         }
         if (await Prize.countDocuments() === 0) {
             await Prize.insertMany([
-                { name: "一等奖：设计师床头柜", weight: 2 }, { name: "二等奖：极简边几", weight: 8 },
-                { name: "升级礼包：拉直器2套", weight: 30 }, { name: "无门槛抵扣券500元", weight: 30 }, { name: "高级香薰礼盒", weight: 30 }
+                { name: "NOEY DESIGN GIFT - 设计师床头柜", weight: 2 }, 
+                { name: "NOEY COLLECTION - 极简边几", weight: 8 },
+                { name: "CUSTOM UPGRADE - 拉直器2套", weight: 30 }, 
+                { name: "HOME BONUS - 定制优惠券500元", weight: 30 }, 
+                { name: "HOME BONUS - 定制优惠券1000元", weight: 30 }
             ]);
             console.log("初始化: 默认奖品池已创建");
         }
         if (await Config.countDocuments() === 0) {
             await Config.create({ 
                 identifier: "global",
-                title: "ARTISAN 高端定制家具幸运礼遇", 
-                subtitle: "签约定制方案，即可获得专属抽奖机会",
+                title: "NOEY 幸运礼遇", 
+                subtitle: "为每一位选择诺一家具的客户，准备专属定制礼物。",
                 paymentCopy: "尊享专属设计方案，支付定金即刻解锁至臻礼遇。请扫码支付后联系您的专属设计师为您录入抽奖次数。",
                 qrCodeUrl: "https://cdn.phototourl.com/free/2026-07-18-98c9e787-a88e-4b7d-969f-3cb31603a68c.png",
                 rules: [
                     { condition: "设计方案定金", value: "3000元", reward: "1次" },
                     { condition: "家具订单", value: "20000元", reward: "3次" },
                     { condition: "整屋定制", value: "50000元以上", reward: "8次" }
-                ]
+                ],
+                brandPhilosophy: "以设计回应生活，以品质兑现承诺",
+                // 默认占位符，将在后台提供修改
+                logoColorUrl: "/assets/logo/logo-color.png",
+                logoBlackUrl: "/assets/logo/logo-black.png",
+                logoWhiteUrl: "/assets/logo/logo-white.png"
             });
             console.log("初始化: 全局配置已创建");
         }
     } catch (err) { console.error("初始化数据失败:", err); }
 }
-// 延迟1秒执行，确保数据库已连接
-setTimeout(initData, 1000);
+setTimeout(initData, 2000);
 
 // ==========================================
 // 4. 权限拦截器 (中间件)
@@ -95,7 +106,7 @@ const requireAdmin = async (req, res, next) => {
 };
 
 // ==========================================
-// 5. API 接口 (全部改为异步数据库查询)
+// 5. API 接口
 // ==========================================
 app.get('/api/config', async (req, res) => {
     const config = await Config.findOne({ identifier: "global" });
@@ -166,7 +177,7 @@ app.post('/api/draw', async (req, res) => {
 
         user.chances -= 1;
         user.rewards.push({ name: wonPrize.name, time: new Date().toLocaleString() });
-        await user.save(); // 保存到云数据库
+        await user.save(); 
 
         res.json({ prize: wonPrize, user: user });
     } catch (err) { res.status(500).json({ error: '抽奖失败' }); }
@@ -180,14 +191,13 @@ app.get('/api/admin/data', requireAdmin, async (req, res) => {
 });
 
 app.post('/api/admin/prizes', requireAdmin, async (req, res) => {
-    await Prize.deleteMany({}); // 清空旧奖品
-    await Prize.insertMany(req.body); // 插入新奖品
+    await Prize.deleteMany({}); 
+    await Prize.insertMany(req.body); 
     res.json({ success: true });
 });
 
 app.post('/api/admin/users', requireAdmin, async (req, res) => {
     const incomingUsers = req.body;
-    // 遍历更新前端传来的每个用户的抽奖次数
     for (let u of incomingUsers) {
         if (u.phone && u.role !== 'admin') {
             await User.updateOne({ phone: u.phone }, { chances: u.chances });

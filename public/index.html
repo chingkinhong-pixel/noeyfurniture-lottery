@@ -45,14 +45,13 @@
     </nav>
 
     <main class="flex-grow pb-24">
-        <!-- 1. 活动主题视觉区域 (去大Logo，突出文字) -->
+        <!-- 1. 活动主题视觉区域 -->
         <section class="flex flex-col items-center justify-center text-center pt-24 pb-16 px-4">
             <div class="inline-flex items-center gap-2 mb-6 text-[#8C6A4F]">
                 <span class="w-8 h-[1px] bg-[#8C6A4F]"></span>
                 <span class="text-xs tracking-[0.3em] uppercase">Exclusive Event</span>
                 <span class="w-8 h-[1px] bg-[#8C6A4F]"></span>
             </div>
-            <!-- 更有层次感的标题设计 -->
             <h1 id="pageTitle" class="text-4xl md:text-5xl font-bold serif-font text-[#1A1A1A] mb-6 leading-tight tracking-wide">
                 加载中...
             </h1>
@@ -61,7 +60,7 @@
             </p>
         </section>
 
-        <!-- 2. 信任背书数据 -->
+        <!-- 2. 信任背书数据 (实时真实数据) -->
         <section class="max-w-4xl mx-auto px-6 mb-20">
             <div class="flex justify-center gap-12 md:gap-24 text-center border-y border-black/5 py-8 bg-white/30 backdrop-blur-sm rounded-lg">
                 <div>
@@ -76,18 +75,7 @@
             </div>
         </section>
 
-        <!-- 3. 获得抽奖资格 (带图标的高级卡片) -->
-        <section class="max-w-5xl mx-auto px-6 mb-24">
-            <div class="text-center mb-10">
-                <h2 class="text-lg tracking-[0.2em] text-[#1A1A1A] uppercase serif-font font-bold">如何获得幸运机会</h2>
-                <div class="w-12 h-[2px] bg-[#1A1A1A] mx-auto mt-4"></div>
-            </div>
-            <div id="rulesContainer" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- 由 JS 渲染 -->
-            </div>
-        </section>
-
-        <!-- 4. 奖品陈列区域 (带图标的高级列表) -->
+        <!-- 3. 奖品陈列区域 (提前展示诱惑) -->
         <section class="max-w-5xl mx-auto px-6 mb-24">
             <div class="text-center mb-10">
                 <h2 class="text-lg tracking-[0.2em] text-[#1A1A1A] uppercase serif-font font-bold">本期致臻礼品</h2>
@@ -98,7 +86,7 @@
             </div>
         </section>
 
-        <!-- 5. 核心博彩级抽奖区域 -->
+        <!-- 4. 核心博彩级抽奖区域 (核心操作区) -->
         <section class="max-w-3xl mx-auto px-6 text-center mb-16 relative">
             <div class="absolute inset-0 bg-[#E6D5B8]/20 blur-3xl -z-10 rounded-full w-3/4 mx-auto h-3/4 mt-10"></div>
             
@@ -108,7 +96,6 @@
                     <div class="pointer-inner"></div>
                 </div>
                 <div id="wheel" class="wheel"></div>
-                <!-- 轮盘中心镶嵌 Logo 移除 onerror -->
                 <div class="wheel-center">
                     <img id="wheelLogo" src="" alt="NOEY">
                 </div>
@@ -120,8 +107,8 @@
             <p class="text-sm text-gray-500 tracking-widest mt-4">您当前拥有 <span id="chances" class="font-serif text-[#5C1615] text-xl font-bold mx-1">0</span> 次专属机会</p>
         </section>
 
-        <!-- 6. 个人中奖记录 -->
-        <section class="max-w-lg mx-auto px-6">
+        <!-- 5. 个人中奖记录 (紧随抽奖结果) -->
+        <section class="max-w-lg mx-auto px-6 mb-24">
             <div class="premium-card p-8 rounded-lg bg-white/80 backdrop-blur text-center">
                 <h3 class="text-xs tracking-[0.2em] text-gray-500 uppercase mb-6 flex items-center justify-center gap-2">
                     <span class="w-1 h-1 bg-[#8C6A4F] rounded-full"></span> 
@@ -129,6 +116,17 @@
                     <span class="w-1 h-1 bg-[#8C6A4F] rounded-full"></span>
                 </h3>
                 <ul id="rewardsList" class="space-y-4 text-sm text-[#1A1A1A] serif-font"></ul>
+            </div>
+        </section>
+
+        <!-- 6. 获得抽奖资格 (置于底部引导二次转化) -->
+        <section class="max-w-5xl mx-auto px-6 mb-10">
+            <div class="text-center mb-10">
+                <h2 class="text-lg tracking-[0.2em] text-[#1A1A1A] uppercase serif-font font-bold">如何获得更多专属机会</h2>
+                <div class="w-12 h-[2px] bg-[#1A1A1A] mx-auto mt-4"></div>
+            </div>
+            <div id="rulesContainer" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- 由 JS 渲染 -->
             </div>
         </section>
     </main>
@@ -199,13 +197,13 @@
                 document.getElementById('pageSubtitle').innerText = config.subtitle;
                 
                 // ==========================================
-                // 🎨 请把您的 Logo 真实网络链接写在下面单引号里：
+                // 🎨 硬编码：绝对兜底的 3 款 Logo 链接
                 // ==========================================
                 const MY_LOGO_BLACK = 'https://i.hd-r.cn/10eebc24-8a58-463e-9433-0e7d54bada9c.png'; 
                 const MY_LOGO_WHITE = 'https://i.hd-r.cn/10e4b29a-4ea1-4f46-884c-ff4e913cd476.png'; 
                 const MY_LOGO_COLOR = 'https://i.hd-r.cn/0f8d5bee-a893-4a9d-acd6-d8a9c5b4357f.png'; 
 
-                // 智能分配 Logo (如果后台被清空了，将永久使用您硬编码的链接)
+                // 智能分配 Logo (如果后台被清空了，将永久使用硬编码的链接)
                 document.getElementById('logoBlack').src = config.logoBlackUrl || MY_LOGO_BLACK;
                 document.getElementById('logoWhite').src = config.logoWhiteUrl || MY_LOGO_WHITE;
                 document.getElementById('wheelLogo').src = config.logoWhiteUrl || config.logoColorUrl || MY_LOGO_COLOR;

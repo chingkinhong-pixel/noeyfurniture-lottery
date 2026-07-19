@@ -13,6 +13,24 @@
             <button onclick="logout()" class="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded hover:bg-red-100 transition">退出登录</button>
         </div>
 
+        <!-- 管理员安全设置 (新增) -->
+        <div class="bg-white p-6 rounded-lg shadow-sm mb-8 border-l-4 border-red-500">
+            <h2 class="text-lg font-bold mb-4">管理员安全设置 (登录账号与密码)</h2>
+            <div class="flex gap-4 items-end mb-4">
+                <div class="flex-1">
+                    <label class="block text-xs font-bold text-gray-500 mb-1 tracking-widest">登录手机号</label>
+                    <input type="text" id="adminPhoneInput" class="w-full border border-gray-200 p-2 text-sm rounded bg-gray-50 focus:bg-white focus:outline-none focus:border-black">
+                </div>
+                <div class="flex-1">
+                    <label class="block text-xs font-bold text-gray-500 mb-1 tracking-widest">新登录密码</label>
+                    <input type="text" id="adminPasswordInput" class="w-full border border-gray-200 p-2 text-sm rounded bg-gray-50 focus:bg-white focus:outline-none focus:border-black" placeholder="若不修改请留空">
+                </div>
+            </div>
+            <div class="text-right">
+                <button onclick="saveAdminAccount()" class="bg-red-600 text-white px-6 py-2 rounded text-sm tracking-widest hover:bg-red-700 transition shadow-lg">更新管理员账号</button>
+            </div>
+        </div>
+
         <!-- 全局页面与品牌设置 -->
         <div class="bg-white p-6 rounded-lg shadow-sm mb-8 border-t-4 border-[#1A1A1A]">
             <h2 class="text-lg font-bold mb-6">品牌资产与营销配置 (前台实时生效)</h2>
@@ -136,6 +154,12 @@
                 return logout();
             }
             currentData = await res.json();
+            
+            // 初始化管理员账号密码框
+            if(currentData.admin) {
+                document.getElementById('adminPhoneInput').value = currentData.admin.phone;
+            }
+
             renderPrizes();
             renderUsers();
         }
@@ -209,6 +233,22 @@
         async function saveUsers() {
             await fetch('/api/admin/users', { method: 'POST', headers, body: JSON.stringify(currentData.users) });
             alert('客户资产池状态更新成功！');
+        }
+
+        async function saveAdminAccount() {
+            const phone = document.getElementById('adminPhoneInput').value;
+            const password = document.getElementById('adminPasswordInput').value;
+            if(!phone) return alert('手机号不能为空');
+            
+            await fetch('/api/admin/account', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ phone, password })
+            });
+            alert('管理员账号更新成功！请记住您的新账号密码。');
+            if(phone !== localStorage.getItem('token')) {
+                localStorage.setItem('token', phone); // 若更改了手机号，同步更新凭证防掉线
+            }
         }
 
         function logout() { localStorage.removeItem('token'); window.location.href = '/login.html'; }

@@ -84,10 +84,10 @@ async function initData() {
                     { condition: "整屋定制", value: "50000元以上", reward: "8次" }
                 ],
                 brandPhilosophy: "以设计回应生活，以品质兑现承诺",
-                // 默认占位符，将在后台提供修改
-                logoColorUrl: "/assets/logo/logo-color.png",
-                logoBlackUrl: "/assets/logo/logo-black.png",
-                logoWhiteUrl: "/assets/logo/logo-white.png"
+                // 数据库出厂默认配置：采用您的真实链接
+                logoColorUrl: "https://i.hd-r.cn/0f8d5bee-a893-4a9d-acd6-d8a9c5b4357f.png",
+                logoBlackUrl: "https://i.hd-r.cn/10eebc24-8a58-463e-9433-0e7d54bada9c.png",
+                logoWhiteUrl: "https://i.hd-r.cn/10e4b29a-4ea1-4f46-884c-ff4e913cd476.png"
             });
             console.log("初始化: 全局配置已创建");
         }
@@ -127,7 +127,8 @@ app.get('/api/stats', async (req, res) => {
     const users = await User.find({ role: 'user' });
     const totalUsers = users.length;
     const totalRewards = users.reduce((sum, u) => sum + u.rewards.length, 0);
-    res.json({ totalUsers: totalUsers + 128, totalRewards: totalRewards + 356 });
+    // 移除了虚拟数据，现在显示 100% 真实的参与人数
+    res.json({ totalUsers: totalUsers, totalRewards: totalRewards });
 });
 
 app.post('/api/login', async (req, res) => {

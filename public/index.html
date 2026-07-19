@@ -24,7 +24,7 @@
         .pointer-inner { position: absolute; top: 0; left: -12px; width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 24px solid #1A1A1A; }
         
         /* 转盘中心 Logo 区 */
-        .wheel-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70px; height: 70px; background: #1A1A1A; border-radius: 50%; border: 4px solid #D4AF37; z-index: 20; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3);}
+        .wheel-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70px; height: 70px; background: #1A1A1A; border-radius: 50%; border: 4px solid #D4AF37; z-index: 20; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); overflow: hidden;}
         .wheel-center img { width: 40px; height: 40px; object-fit: contain; }
 
         .btn-luxury { background: #1A1A1A; color: #FFFFFF; transition: all 0.3s ease; }
@@ -35,6 +35,7 @@
 <body class="min-h-screen flex flex-col">
     <!-- 浅色导航栏：保留角落 Logo -->
     <nav class="px-6 py-4 flex justify-between items-center sticky top-0 z-50 bg-[#F7F5F0]/90 backdrop-blur-md border-b border-black/5">
+        <!-- 移除了 onerror 代码 -->
         <img id="logoBlack" src="" alt="NOEY" class="h-5 object-contain">
         <div class="flex items-center gap-4 text-xs tracking-wider">
             <span class="text-gray-500 hidden md:inline">NOEY MEMBER /</span>
@@ -107,7 +108,7 @@
                     <div class="pointer-inner"></div>
                 </div>
                 <div id="wheel" class="wheel"></div>
-                <!-- 轮盘中心镶嵌 Logo -->
+                <!-- 轮盘中心镶嵌 Logo 移除 onerror -->
                 <div class="wheel-center">
                     <img id="wheelLogo" src="" alt="NOEY">
                 </div>
@@ -134,6 +135,7 @@
 
     <!-- 深色官方页脚：补充版权与商标声明 -->
     <footer class="bg-[#111111] text-white py-16 px-6 text-center border-t-4 border-[#8C6A4F]">
+        <!-- 移除了 onerror 代码 -->
         <img id="logoWhite" src="" alt="NOEY" class="h-6 object-contain mx-auto mb-8 opacity-90">
         <div class="text-[10px] tracking-[0.2em] text-gray-400 uppercase space-y-3 font-light leading-loose">
             <p>NOEY Furniture Manufacture</p>
@@ -196,11 +198,17 @@
                 document.getElementById('pageTitle').innerText = config.title;
                 document.getElementById('pageSubtitle').innerText = config.subtitle;
                 
-                // 智能分配 Logo
-                document.getElementById('logoBlack').src = config.logoBlackUrl || "";
-                document.getElementById('logoWhite').src = config.logoWhiteUrl || "";
-                // 转盘中心使用白色或彩色Logo
-                document.getElementById('wheelLogo').src = config.logoWhiteUrl || config.logoColorUrl || "";
+                // ==========================================
+                // 🎨 请把您的 Logo 真实网络链接写在下面单引号里：
+                // ==========================================
+                const MY_LOGO_BLACK = 'https://i.hd-r.cn/10eebc24-8a58-463e-9433-0e7d54bada9c.png'; 
+                const MY_LOGO_WHITE = 'https://i.hd-r.cn/10e4b29a-4ea1-4f46-884c-ff4e913cd476.png'; 
+                const MY_LOGO_COLOR = 'https://i.hd-r.cn/0f8d5bee-a893-4a9d-acd6-d8a9c5b4357f.png'; 
+
+                // 智能分配 Logo (如果后台被清空了，将永久使用您硬编码的链接)
+                document.getElementById('logoBlack').src = config.logoBlackUrl || MY_LOGO_BLACK;
+                document.getElementById('logoWhite').src = config.logoWhiteUrl || MY_LOGO_WHITE;
+                document.getElementById('wheelLogo').src = config.logoWhiteUrl || config.logoColorUrl || MY_LOGO_COLOR;
 
                 document.title = config.title;
                 renderRules(config.rules);
@@ -306,10 +314,13 @@
                 if(displayName.includes('-')) displayName = displayName.split('-')[1].trim();
                 else if(displayName.includes('：')) displayName = displayName.split('：')[1].trim();
 
+                // 核心修复：更精确的扇形文字定位与抗遮挡算法
+                const textRotate = rotate + sliceAngle / 2 - 90;
+
                 return `
                     <div style="position:absolute; width:50%; height:50%; top:0; right:0; transform-origin:0% 100%; transform:rotate(${rotate}deg) skewY(-${skew}deg); background:${colors[i%2]}; border: 1px solid rgba(0,0,0,0.1);"></div>
-                    <div style="position:absolute; width:100%; height:100%; top:0; left:0; transform:rotate(${rotate + sliceAngle/2}deg); text-align:center; padding-top:25px; font-weight:700; font-size:12px; color:${textColors[i%2]}; pointer-events:none; letter-spacing:1px; z-index:10; writing-mode: vertical-rl;">
-                        ${displayName.substring(0, 9)}
+                    <div style="position:absolute; top:50%; left:50%; width:45%; height:20px; margin-top:-10px; transform-origin:0 50%; transform:rotate(${textRotate}deg); text-align:right; font-weight:700; font-size:12px; color:${textColors[i%2]}; pointer-events:none; z-index:10; display:flex; justify-content:flex-end; align-items:center; padding-right:15px; letter-spacing:1px;">
+                        <span style="display:inline-block; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${displayName}</span>
                     </div>`;
             }).join('');
         }

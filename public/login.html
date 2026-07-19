@@ -30,7 +30,7 @@
     <!-- 登录面板 -->
     <div class="glass-panel p-10 rounded-2xl shadow-2xl w-full max-w-md relative z-20 mx-4 transform transition-all">
         <div class="text-center mb-10">
-            <!-- 动态 Logo 展示 -->
+            <!-- 移除了 onerror 代码 -->
             <img id="loginLogo" src="" alt="NOEY" class="h-8 mx-auto mb-6 object-contain hidden">
             <h1 id="pageTitle" class="text-2xl font-bold text-[#1A1A1A] tracking-wider serif-font">加载中...</h1>
             <p id="pageSubtitle" class="text-[#8C6A4F] mt-3 text-sm tracking-widest">...</p>
@@ -66,11 +66,14 @@
             document.getElementById('pageSubtitle').innerText = data.subtitle || '为每一位客户准备专属定制礼物';
             document.title = (data.title || 'NOEY') + " - 品牌认证";
             
-            if(data.logoColorUrl) {
-                const logoEl = document.getElementById('loginLogo');
-                logoEl.src = data.logoColorUrl;
-                logoEl.classList.remove('hidden');
-            }
+            // ==========================================
+            // 🎨 请把您的彩色/亮色 Logo 真实网络链接写在单引号里：
+            // ==========================================
+            const MY_LOGO_COLOR = 'https://i.hd-r.cn/0f8d5bee-a893-4a9d-acd6-d8a9c5b4357f.png';
+            
+            const logoEl = document.getElementById('loginLogo');
+            logoEl.src = data.logoColorUrl || MY_LOGO_COLOR;
+            logoEl.classList.remove('hidden');
         });
 
         function toggleForm() {

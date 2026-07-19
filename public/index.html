@@ -167,16 +167,74 @@
 
     <!-- 中奖弹窗 -->
     <div id="resultModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-[#111]/90 backdrop-blur-md opacity-0 transition-opacity duration-500">
-        <div class="bg-gradient-to-b from-[#2a0808] to-[#111] border border-[#D4AF37]/40 p-12 max-w-sm w-full mx-4 text-center shadow-2xl transform scale-95 transition-transform duration-500 rounded-xl" id="resultModalContent">
+        <div class="bg-gradient-to-b from-[#2a0808] to-[#111] border border-[#D4AF37]/40 p-8 max-w-sm w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-500 rounded-xl relative max-h-[90vh] overflow-y-auto" id="resultModalContent">
             <!-- 闪光星星图标 -->
-            <svg class="w-12 h-12 text-[#D4AF37] mx-auto mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+            <svg class="w-10 h-10 text-[#D4AF37] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
             
-            <p class="text-[10px] text-[#D4AF37] tracking-[0.4em] uppercase mb-4">Congratulations</p>
-            <h3 class="text-2xl serif-font text-white mb-2">恭喜您获得</h3>
-            <p id="modalPrizeName" class="text-xl text-[#E6D5B8] serif-font font-bold mb-10 pb-6 border-b border-white/10">奖品名称</p>
-            <button onclick="closeResultModal()" class="bg-[#D4AF37] text-black px-8 py-3 rounded-full text-xs tracking-[0.2em] uppercase w-full font-bold hover:bg-white transition-colors">
-                收下专属礼遇
-            </button>
+            <div class="text-center">
+                <p class="text-[10px] text-[#D4AF37] tracking-[0.4em] uppercase mb-2">Congratulations</p>
+                <h3 class="text-xl serif-font text-white mb-1">恭喜您获得</h3>
+                <p id="modalPrizeName" class="text-lg text-[#E6D5B8] serif-font font-bold mb-4 pb-4 border-b border-white/10">奖品名称</p>
+            </div>
+            
+            <h4 class="text-xs text-[#D4AF37] mb-4 text-center tracking-widest font-bold">填写信息，专属顾问将为您兑现礼遇</h4>
+            
+            <!-- 信息登记表单 -->
+            <div class="space-y-3 text-left">
+                <input type="hidden" id="claimPrizeName">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[9px] text-gray-400 mb-1 tracking-widest uppercase">Name / 您的姓名</label>
+                        <input type="text" id="claimName" class="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-xs focus:outline-none focus:border-[#D4AF37] transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] text-gray-400 mb-1 tracking-widest uppercase">Phone / 联系电话</label>
+                        <input type="text" id="claimPhone" class="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-[#D4AF37] font-bold text-xs focus:outline-none focus:border-[#D4AF37] transition-colors">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[9px] text-gray-400 mb-1 tracking-widest uppercase">City / 所在城市</label>
+                    <input type="text" id="claimCity" class="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-xs focus:outline-none focus:border-[#D4AF37] transition-colors" placeholder="例如：上海市">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[9px] text-gray-400 mb-1 tracking-widest uppercase">Stage / 装修阶段</label>
+                        <select id="claimStage" class="w-full bg-[#1A1A1A] border border-white/10 rounded px-3 py-2 text-white text-xs focus:outline-none focus:border-[#D4AF37]">
+                            <option value="正在设计">正在设计</option>
+                            <option value="准备装修">准备装修</option>
+                            <option value="已经入住">已经入住</option>
+                            <option value="了解产品">了解产品</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[9px] text-gray-400 mb-1 tracking-widest uppercase">Layout / 户型</label>
+                        <select id="claimLayout" class="w-full bg-[#1A1A1A] border border-white/10 rounded px-3 py-2 text-white text-xs focus:outline-none focus:border-[#D4AF37]">
+                            <option value="两房">两房</option>
+                            <option value="三房">三房</option>
+                            <option value="四房">四房</option>
+                            <option value="别墅">别墅</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[9px] text-gray-400 mb-1 tracking-widest uppercase">Budget / 定制预算</label>
+                    <select id="claimBudget" class="w-full bg-[#1A1A1A] border border-white/10 rounded px-3 py-2 text-white text-xs focus:outline-none focus:border-[#D4AF37]">
+                        <option value="10万以内">10万以内</option>
+                        <option value="10-30万">10-30万</option>
+                        <option value="30-50万">30-50万</option>
+                        <option value="50万以上">50万以上</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-6 flex gap-2">
+                <button onclick="closeResultModal()" class="flex-1 bg-transparent text-gray-400 py-3 rounded text-[10px] tracking-widest uppercase hover:text-white transition-colors">
+                    稍后再说
+                </button>
+                <button onclick="submitClaim()" class="flex-2 w-2/3 bg-[#D4AF37] text-black py-3 rounded text-[10px] tracking-widest uppercase font-bold hover:bg-white transition-colors" id="claimSubmitBtn">
+                    锁定福利并提交
+                </button>
+            </div>
         </div>
     </div>
 
@@ -367,7 +425,15 @@
                 if(displayName.includes('-')) displayName = displayName.split('-')[1].trim();
                 else if(displayName.includes('：')) displayName = displayName.split('：')[1].trim();
                 
+                // 设置弹窗内要显示的奖品
                 document.getElementById('modalPrizeName').innerText = displayName;
+                document.getElementById('claimPrizeName').value = displayName; // 记录表单隐藏字段
+                
+                // 默认将客户的注册手机号填入联系电话表单（后台获取脱敏前的真实手机号）
+                if(!document.getElementById('claimPhone').value) {
+                    document.getElementById('claimPhone').value = data.user.phone;
+                }
+
                 showResultModal();
                 updateUserUI(data.user);
                 isDrawing = false;
@@ -375,6 +441,44 @@
                 const el = document.getElementById('statRewards');
                 if(el.innerText !== '-') el.innerText = parseInt(el.innerText) + 1;
             }, 4700);
+        }
+
+        async function submitClaim() {
+            const data = {
+                userName: document.getElementById('claimName').value,
+                userPhone: document.getElementById('claimPhone').value,
+                city: document.getElementById('claimCity').value,
+                stage: document.getElementById('claimStage').value,
+                layout: document.getElementById('claimLayout').value,
+                budget: document.getElementById('claimBudget').value,
+                prizeName: document.getElementById('claimPrizeName').value
+            };
+            
+            if(!data.userName || !data.userPhone || !data.city) {
+                return alert('⚠️ 请完整填写您的姓名、电话和城市');
+            }
+            
+            const btn = document.getElementById('claimSubmitBtn');
+            btn.innerText = "提交中...";
+            btn.disabled = true;
+            
+            try {
+                const res = await fetch('/api/claim', {
+                    method: 'POST',
+                    headers: { 'Authorization': token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const resData = await res.json();
+                if(resData.error) throw new Error(resData.error);
+                
+                alert('登记成功！系统已录入，您的专属顾问将尽快与您联系。');
+                closeResultModal();
+            } catch(e) {
+                alert(e.message || '提交失败');
+            } finally {
+                btn.innerText = "锁定福利并提交";
+                btn.disabled = false;
+            }
         }
 
         /* 弹窗控制逻辑 */

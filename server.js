@@ -37,7 +37,6 @@ const prizeSchema = new mongoose.Schema({
 });
 const Prize = mongoose.model('Prize', prizeSchema);
 
-// 新增：客户线索(中奖领取登记)模型
 const leadSchema = new mongoose.Schema({
     userName: String,
     userPhone: String,
@@ -47,7 +46,7 @@ const leadSchema = new mongoose.Schema({
     budget: String,
     prizeName: String,
     claimTime: String,
-    status: { type: String, default: "新客户" } // 新客户, 已联系, 已预约, 已成交, 无效
+    status: { type: String, default: "新客户" } 
 });
 const Lead = mongoose.model('Lead', leadSchema);
 
@@ -62,31 +61,147 @@ const configSchema = new mongoose.Schema({
     logoColorUrl: String,
     logoBlackUrl: String,
     logoWhiteUrl: String,
-    // 新增：活动时间配置
     startTime: { type: Date, default: new Date() },
     endTime: { type: Date, default: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000) }
 });
 const Config = mongoose.model('Config', configSchema);
-// 抽奖逻辑校验新增时间判断
+
+// ==========================================
+// 3. 自动初始化数据
+// ==========================================
+async function initData() {
+    try {
+        if (await User.countDocuments() === 0) {
+            await User.create({ phone: "15728656310", password: "000000", role: "admin", chances: 0, rewards: [] });
+            console.log("初始化: 管理员账号已创建");
+        }
+        if (await Prize.countDocuments() === 0) {
+            await Prize.insertMany([
+                { name: "NOEY DESIGN GIFT - 设计师床头柜", weight: 2 }, 
+                { name: "NOEY COLLECTION - 极简边几", weight: 8 },
+                { name: "CUSTOM UPGRADE - 拉直器2套", weight: 30 }, 
+                { name: "HOME BONUS - 定制优惠券500元", weight: 30 }, 
+                { name: "HOME BONUS - 定制优惠券1000元", weight: 30 }
+            ]);
+            console.log("初始化: 默认奖品池已创建");
+        }
+        if (await Config.countDocuments() === 0) {
+            await Config.create({ 
+                identifier: "global",
+                title: "NOEY 幸运礼遇", 
+                subtitle: "为每一位选择诺一家具的客户，准备专属定制礼物。",
+                paymentCopy: "尊享专属设计方案，支付定金即刻解锁至臻礼遇。请扫码支付后联系您的专属设计师为您录入抽奖次数。",
+                qrCodeUrl: "https://cdn.phototourl.com/free/2026-07-18-98c9e787-a88e-4b7d-969f-3cb31603a68c.png",
+                rules: [
+                    { condition: "设计方案定金", value: "3000元", reward: "1次" },
+                    { condition: "家具订单", value: "20000元", reward: "3次" },
+                    { condition: "整屋定制", value: "50000元以上", reward: "8次" }
+                ],
+                brandPhilosophy: "以设计回应生活，以品质兑现承诺",
+                logoColorUrl: "https://i.hd-r.cn/0f8d5bee-a893-4a9d-acd6-d8a9c5b4357f.png",
+                logoBlackUrl: "https://i.hd-r.cn/10eebc24-8a58-463e-9433-0e7d54bada9c.png",
+                logoWhiteUrl: "https://i.hd-r.cn/10e4b29a-4ea1-4f46-884c-ff4e913cd476.png"
+            });
+            console.log("初始化: 全局配置已创建");
+        }
+    } catch (err) { console.error("初始化数据失败:", err); }
+}
+setTimeout(initData, 2000);
+
+// ==========================================
+// 4. 权限拦截器 (中间件)
+// ==========================================
+const requireAdmin = async (req, res, next) => {
+    const phone = req.headers.authorization;
+    const user = await User.findOne({ phone: phone, role: 'admin' });
+    if (!user) return res.status(403).json({ error: '权限不足' });
+    next();
+};
+
+// ==========================================
+// 5. API 接口
+// ==========================================
+app.get('/api/config', async (req, res) => {
+    const config = await Config.findOne({ identifier: "global" });
+    res.json(config || {});
+});
+
+app.post('/api/config', requireAdmin, async (req, res) => {
+    await Config.findOneAndUpdate({ identifier: "global" }, req.body, { upsert: true });
+    res.json({ success: true });
+});
+
+app.get('/api/prizes', async (req, res) => {
+    const prizes = await Prize.find();
+    res.json(prizes);
+});
+
+app.get('/api/stats', async (req, res) => {
+    const users = await User.find({ role: 'user' });
+    const totalUsers = users.length;
+    const totalRewards = users.reduce((sum, u) => sum + u.rewards.length, 0);
+    res.json({ totalUsers: totalUsers, totalRewards: totalRewards });
+});
+
+app.post('/api/login', async (req, res) => {
+    try {
+        const { phone, password, isAdminLogin } = req.body;
+        let user = await User.findOne({ phone: phone });
+
+        if (isAdminLogin) {
+            if (!user || user.password !== password || user.role !== 'admin') {
+                return res.status(401).json({ error: '管理员账号或密码错误' });
+            }
+            return res.json({ token: user.phone, role: user.role });
+        } else {
+            if (user && user.role === 'admin') return res.status(403).json({ error: '管理员请通过专属通道登录' });
+            if (!user) {
+                user = await User.create({ phone, role: 'user', chances: 1, rewards: [] });
+            }
+            return res.json({ token: user.phone, role: user.role });
+        }
+    } catch (err) { res.status(500).json({ error: '服务器错误' }); }
+});
+
+app.get('/api/user', async (req, res) => {
+    const phone = req.headers.authorization;
+    const user = await User.findOne({ phone: phone });
+    user ? res.json(user) : res.status(404).json({ error: '用户不存在' });
+});
+
 app.post('/api/draw', async (req, res) => {
     try {
         const config = await Config.findOne({ identifier: "global" });
         const now = new Date();
         if (now < config.startTime || now > config.endTime) {
-            return res.status(400).json({ error: '本期活动已结束，感谢关注' });
+            return res.status(400).json({ error: '不在活动时间内，无法抽奖' });
         }
         
         const phone = req.headers.authorization;
         const user = await User.findOne({ phone: phone });
-        // ... existing code (原抽奖逻辑) ...
+        
+        if (!user || user.chances <= 0) {
+            return res.status(400).json({ error: '没有抽奖次数了' });
+        }
+
+        const prizes = await Prize.find();
+        const totalWeight = prizes.reduce((sum, p) => sum + Number(p.weight), 0);
+        let randomNum = Math.random() * totalWeight;
+        let wonPrize = prizes[prizes.length - 1];
+
+        for (let prize of prizes) {
+            if (randomNum < prize.weight) { wonPrize = prize; break; }
+            randomNum -= prize.weight;
+        }
+
         user.chances -= 1;
         user.rewards.push({ name: wonPrize.name, time: new Date().toLocaleString() });
         await user.save(); 
+
         res.json({ prize: wonPrize, user: user });
     } catch (err) { res.status(500).json({ error: '抽奖失败' }); }
 });
 
-// 新增：前端提交领奖登记信息
 app.post('/api/claim', async (req, res) => {
     try {
         const phone = req.headers.authorization;
@@ -107,13 +222,11 @@ app.post('/api/claim', async (req, res) => {
     } catch (err) { res.status(500).json({ error: '提交失败' }); }
 });
 
-// 新增：后台获取中奖客户线索列表 (倒序排列，新线索在前)
 app.get('/api/admin/leads', requireAdmin, async (req, res) => {
     const leads = await Lead.find().sort({ _id: -1 });
     res.json(leads);
 });
 
-// 新增：后台销售更新线索跟进状态
 app.post('/api/admin/leads/status', requireAdmin, async (req, res) => {
     await Lead.findByIdAndUpdate(req.body.id, { status: req.body.status });
     res.json({ success: true });

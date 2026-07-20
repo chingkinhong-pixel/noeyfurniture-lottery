@@ -37,6 +37,7 @@ const prizeSchema = new mongoose.Schema({
 });
 const Prize = mongoose.model('Prize', prizeSchema);
 
+// 新增：客户线索(中奖领取登记)模型
 const leadSchema = new mongoose.Schema({
     userName: String,
     userPhone: String,
@@ -46,7 +47,7 @@ const leadSchema = new mongoose.Schema({
     budget: String,
     prizeName: String,
     claimTime: String,
-    status: { type: String, default: "新客户" } 
+    status: { type: String, default: "新客户" } // 新客户, 已联系, 已预约, 已成交, 无效
 });
 const Lead = mongoose.model('Lead', leadSchema);
 
@@ -57,17 +58,16 @@ const configSchema = new mongoose.Schema({
     paymentCopy: String,
     qrCodeUrl: String,
     rules: Array,
+    // 新增：高端品牌资产字段
     brandPhilosophy: String,
     logoColorUrl: String,
     logoBlackUrl: String,
-    logoWhiteUrl: String,
-    startTime: { type: Date, default: new Date() },
-    endTime: { type: Date, default: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000) }
+    logoWhiteUrl: String
 });
 const Config = mongoose.model('Config', configSchema);
 
 // ==========================================
-// 3. 自动初始化数据
+// 3. 自动初始化数据 (如果数据库为空)
 // ==========================================
 async function initData() {
     try {
@@ -98,6 +98,7 @@ async function initData() {
                     { condition: "整屋定制", value: "50000元以上", reward: "8次" }
                 ],
                 brandPhilosophy: "以设计回应生活，以品质兑现承诺",
+                // 数据库出厂默认配置：采用您的真实链接
                 logoColorUrl: "https://i.hd-r.cn/0f8d5bee-a893-4a9d-acd6-d8a9c5b4357f.png",
                 logoBlackUrl: "https://i.hd-r.cn/10eebc24-8a58-463e-9433-0e7d54bada9c.png",
                 logoWhiteUrl: "https://i.hd-r.cn/10e4b29a-4ea1-4f46-884c-ff4e913cd476.png"
@@ -140,6 +141,7 @@ app.get('/api/stats', async (req, res) => {
     const users = await User.find({ role: 'user' });
     const totalUsers = users.length;
     const totalRewards = users.reduce((sum, u) => sum + u.rewards.length, 0);
+    // 移除了虚拟数据，现在显示 100% 真实的参与人数
     res.json({ totalUsers: totalUsers, totalRewards: totalRewards });
 });
 
@@ -171,12 +173,6 @@ app.get('/api/user', async (req, res) => {
 
 app.post('/api/draw', async (req, res) => {
     try {
-        const config = await Config.findOne({ identifier: "global" });
-        const now = new Date();
-        if (now < config.startTime || now > config.endTime) {
-            return res.status(400).json({ error: '不在活动时间内，无法抽奖' });
-        }
-        
         const phone = req.headers.authorization;
         const user = await User.findOne({ phone: phone });
         
@@ -202,6 +198,7 @@ app.post('/api/draw', async (req, res) => {
     } catch (err) { res.status(500).json({ error: '抽奖失败' }); }
 });
 
+// 新增：前端提交领奖登记信息
 app.post('/api/claim', async (req, res) => {
     try {
         const phone = req.headers.authorization;
@@ -222,11 +219,13 @@ app.post('/api/claim', async (req, res) => {
     } catch (err) { res.status(500).json({ error: '提交失败' }); }
 });
 
+// 新增：后台获取中奖客户线索列表 (倒序排列，新线索在前)
 app.get('/api/admin/leads', requireAdmin, async (req, res) => {
     const leads = await Lead.find().sort({ _id: -1 });
     res.json(leads);
 });
 
+// 新增：后台销售更新线索跟进状态
 app.post('/api/admin/leads/status', requireAdmin, async (req, res) => {
     await Lead.findByIdAndUpdate(req.body.id, { status: req.body.status });
     res.json({ success: true });

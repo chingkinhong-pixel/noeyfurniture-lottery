@@ -3,19 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOEY 后台中枢系统</title>
+    <title>NOEY 诺一家具 - 后台管理</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 min-h-screen text-gray-800 p-8 font-sans">
+<body class="bg-gray-50 min-h-screen text-gray-800 p-8">
     <div class="max-w-6xl mx-auto">
-        <div class="flex justify-between items-center mb-8 border-b border-gray-200 pb-4">
-            <div>
-                <h1 class="text-2xl font-bold tracking-widest text-[#1A1A1A]">SYSTEM CONTROL</h1>
-                <p class="text-xs text-gray-400 mt-1">品牌数据与营销中枢</p>
-            </div>
-            <button onclick="logout()" class="px-6 py-2 bg-white border border-gray-200 text-gray-600 text-sm rounded hover:bg-gray-50 transition shadow-sm">安全退出</button>
+        <div class="flex justify-between items-center mb-8 border-b pb-4">
+            <h1 class="text-2xl font-bold tracking-wider">NOEY 系统管理控制台</h1>
+            <button onclick="logout()" class="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded hover:bg-red-100 transition">退出登录</button>
         </div>
 
+        <!-- 管理员安全设置 (新增) -->
         <div class="bg-white p-6 rounded-lg shadow-sm mb-8 border-l-4 border-red-500">
             <h2 class="text-lg font-bold mb-4">管理员安全设置 (登录账号与密码)</h2>
             <div class="flex gap-4 items-end mb-4">
@@ -33,20 +31,10 @@
             </div>
         </div>
 
+        <!-- 全局页面与品牌设置 -->
         <div class="bg-white p-6 rounded-lg shadow-sm mb-8 border-t-4 border-[#1A1A1A]">
             <h2 class="text-lg font-bold mb-6">品牌资产与营销配置 (前台实时生效)</h2>
             
-            <div class="grid grid-cols-2 gap-6 mb-6 bg-gray-50 p-4 rounded border border-gray-100">
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">活动开始时间</label>
-                    <input type="datetime-local" id="configStartTime" class="w-full border p-2 text-sm rounded">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">活动结束时间</label>
-                    <input type="datetime-local" id="configEndTime" class="w-full border p-2 text-sm rounded">
-                </div>
-            </div>
-
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                     <label class="block text-xs font-bold text-gray-500 mb-1 tracking-widest">活动大标题</label>
@@ -62,6 +50,27 @@
                 </div>
             </div>
 
+            <!-- Logo 管理模块 -->
+            <div class="bg-gray-50 p-4 rounded border border-gray-100 mb-6">
+                <h3 class="text-sm font-bold mb-4">Logo 资源管理 (请填入图片的网络链接 URL)</h3>
+                <p class="text-xs text-gray-400 mb-4">提示：为了防止云服务器重启丢失图片，请将图片上传到您的服务器或免费图床，并将生成的 http 链接填入下方。</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">首页展示区彩色 Logo</label>
+                        <input type="text" id="logoColorUrl" class="w-full border border-gray-200 p-2 text-xs rounded" placeholder="http://...">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">浅色背景黑色 Logo</label>
+                        <input type="text" id="logoBlackUrl" class="w-full border border-gray-200 p-2 text-xs rounded" placeholder="http://...">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">深色背景白色 Logo</label>
+                        <input type="text" id="logoWhiteUrl" class="w-full border border-gray-200 p-2 text-xs rounded" placeholder="http://...">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 收款与规则配置 -->
             <div class="flex gap-4 items-end mb-6 bg-gray-50 p-4 rounded border border-gray-100">
                 <div class="flex-2 w-2/3">
                     <label class="block text-xs font-bold text-gray-500 mb-1 tracking-widest">收款弹窗话术</label>
@@ -86,7 +95,34 @@
             </div>
         </div>
 
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mt-8 border-t-4 border-[#8C6A4F] mb-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- 奖品管理 -->
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-lg font-bold">高级奖品陈列配置</h2>
+                        <p class="text-xs text-gray-400 mt-1">建议格式：英文系列名 - 中文奖品名 (例如: DESIGN - 床头柜)</p>
+                    </div>
+                    <button onclick="addPrize()" class="bg-gray-100 text-gray-700 text-xs px-3 py-1 rounded hover:bg-gray-200">新增奖品</button>
+                </div>
+                <div id="prizesList" class="space-y-3"></div>
+                <div class="mt-6 text-right">
+                    <button onclick="savePrizes()" class="bg-[#8C6A4F] text-white px-6 py-2 rounded text-sm hover:bg-[#72553f] transition">同步奖品池</button>
+                </div>
+            </div>
+
+            <!-- 用户管理 -->
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                <h2 class="text-lg font-bold mb-6">客户资产池</h2>
+                <div id="usersList" class="space-y-3 max-h-[500px] overflow-y-auto pr-2"></div>
+                <div class="mt-6 text-right">
+                    <button onclick="saveUsers()" class="bg-[#8C6A4F] text-white px-6 py-2 rounded text-sm hover:bg-[#72553f] transition">保存客户次数</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 销售线索 (CRM) 追踪模块 -->
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mt-8 border-t-4 border-[#8C6A4F]">
             <h2 class="text-lg font-bold mb-2">中奖客户跟进 (Sales CRM)</h2>
             <p class="text-xs text-gray-400 mb-6">前台用户中奖后登记的个人信息将自动汇集于此，销售顾问可实时跟进流转。</p>
             
@@ -111,29 +147,6 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                <div class="flex justify-between items-center mb-6">
-                    <div>
-                        <h2 class="text-lg font-bold">高级奖品陈列配置</h2>
-                        <p class="text-xs text-gray-400 mt-1">建议格式：英文系列名 - 中文奖品名</p>
-                    </div>
-                    <button onclick="addPrize()" class="bg-gray-100 text-gray-700 text-xs px-3 py-1 rounded hover:bg-gray-200">新增奖品</button>
-                </div>
-                <div id="prizesList" class="space-y-3"></div>
-                <div class="mt-6 text-right">
-                    <button onclick="savePrizes()" class="bg-[#8C6A4F] text-white px-6 py-2 rounded text-sm hover:bg-[#72553f] transition">同步奖品池</button>
-                </div>
-            </div>
-
-            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                <h2 class="text-lg font-bold mb-6">客户资产池</h2>
-                <div id="usersList" class="space-y-3 max-h-[500px] overflow-y-auto pr-2"></div>
-                <div class="mt-6 text-right">
-                    <button onclick="saveUsers()" class="bg-[#8C6A4F] text-white px-6 py-2 rounded text-sm hover:bg-[#72553f] transition">保存客户次数</button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -142,52 +155,109 @@
         const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
         let currentData = { prizes: [], users: [] };
         let currentRules = [];
+        let currentLeads = []; // 新增线索容器
 
         async function init() {
+            // 加载配置
             const cfgRes = await fetch('/api/config');
             const config = await cfgRes.json();
+            document.getElementById('configTitle').value = config.title || '';
+            document.getElementById('configSubtitle').value = config.subtitle || '';
+            document.getElementById('configPhilosophy').value = config.brandPhilosophy || '';
+            document.getElementById('configPaymentCopy').value = config.paymentCopy || '';
+            document.getElementById('configQrCodeUrl').value = config.qrCodeUrl || '';
             
-            if(config.startTime) {
-                const st = new Date(config.startTime);
-                st.setMinutes(st.getMinutes() - st.getTimezoneOffset());
-                document.getElementById('configStartTime').value = st.toISOString().slice(0,16);
-            }
-            if(config.endTime) {
-                const et = new Date(config.endTime);
-                et.setMinutes(et.getMinutes() - et.getTimezoneOffset());
-                document.getElementById('configEndTime').value = et.toISOString().slice(0,16);
-            }
+            // 绑定 Logo 链接到输入框
+            document.getElementById('logoColorUrl').value = config.logoColorUrl || '';
+            document.getElementById('logoBlackUrl').value = config.logoBlackUrl || '';
+            document.getElementById('logoWhiteUrl').value = config.logoWhiteUrl || '';
 
-            document.getElementById('configTitle').value = config.title;
-            document.getElementById('configSubtitle').value = config.subtitle;
-            document.getElementById('configPhilosophy').value = config.brandPhilosophy || "";
-            document.getElementById('configPaymentCopy').value = config.paymentCopy || "";
-            document.getElementById('configQrCodeUrl').value = config.qrCodeUrl || "";
             currentRules = config.rules || [];
             renderRules();
 
+            // 加载数据
             const res = await fetch('/api/admin/data', { headers });
-            if (res.status === 403) { alert('越权访问，即将退出'); return logout(); }
+            if (res.status === 403) {
+                alert('越权访问，即将退出');
+                return logout();
+            }
             currentData = await res.json();
             
-            document.getElementById('adminPhoneInput').value = currentData.admin.phone;
-            
+            // 初始化管理员账号密码框
+            if(currentData.admin) {
+                document.getElementById('adminPhoneInput').value = currentData.admin.phone;
+            }
+
             renderPrizes();
             renderUsers();
-            loadLeads();
+            
+            // 异步拉取线索登记表
+            fetchLeads();
         }
+
+        // --- 线索管理模块核心方法 ---
+        async function fetchLeads() {
+            try {
+                const res = await fetch('/api/admin/leads', { headers });
+                currentLeads = await res.json();
+                renderLeads();
+            } catch(e) { console.error('加载线索失败'); }
+        }
+
+        function renderLeads() {
+            const tbody = document.getElementById('leadsList');
+            if(currentLeads.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-gray-400 text-sm tracking-widest">暂无客户登记数据</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = currentLeads.map(lead => `
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="p-3 text-xs text-gray-400">${lead.claimTime.split(' ')[0]}<br><span class="text-[10px]">${lead.claimTime.split(' ')[1] || ''}</span></td>
+                    <td class="p-3 font-bold text-gray-800">${lead.userName}</td>
+                    <td class="p-3 text-xs text-gray-600">${lead.userPhone}</td>
+                    <td class="p-3 text-xs text-gray-600">${lead.city || '-'}</td>
+                    <td class="p-3 font-bold text-[#8C6A4F] text-xs">${lead.prizeName}</td>
+                    <td class="p-3 text-xs text-gray-600">${lead.stage} / ${lead.layout}</td>
+                    <td class="p-3 text-xs font-medium ${lead.budget.includes('50') ? 'text-red-500' : 'text-gray-600'}">${lead.budget}</td>
+                    <td class="p-3 text-right">
+                        <select onchange="updateLeadStatus('${lead._id}', this.value)" class="text-xs border border-gray-200 p-1.5 rounded bg-white focus:outline-none focus:border-black ${lead.status === '已成交' ? 'text-green-600 font-bold bg-green-50 border-green-200' : (lead.status === '新客户' ? 'text-red-500 font-bold' : '')}">
+                            <option value="新客户" ${lead.status === '新客户' ? 'selected' : ''}>🚨 新客户</option>
+                            <option value="已联系" ${lead.status === '已联系' ? 'selected' : ''}>已联系</option>
+                            <option value="已预约" ${lead.status === '已预约' ? 'selected' : ''}>已预约量尺</option>
+                            <option value="已成交" ${lead.status === '已成交' ? 'selected' : ''}>✅ 已成交</option>
+                            <option value="无效" ${lead.status === '无效' ? 'selected' : ''}>无效</option>
+                        </select>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function updateLeadStatus(id, newStatus) {
+            try {
+                await fetch('/api/admin/leads/status', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ id, status: newStatus })
+                });
+                // 仅静默更新数据库，不打断销售操作，体验更好
+                fetchLeads(); // 刷新高亮UI
+            } catch(e) {
+                alert('状态更新失败');
+            }
+        }
+        // --- 结束 ---
 
         function renderRules() {
             document.getElementById('rulesList').innerHTML = currentRules.map((r, i) => `
-                <div class="flex gap-2 items-center bg-gray-50 p-2 rounded border border-gray-100">
-                    <input type="text" value="${r.condition}" onchange="currentRules[${i}].condition=this.value" class="flex-1 border border-gray-200 p-2 text-sm rounded bg-white" placeholder="条件">
-                    <input type="text" value="${r.value}" onchange="currentRules[${i}].value=this.value" class="flex-1 border border-gray-200 p-2 text-sm rounded bg-white" placeholder="金额">
-                    <input type="text" value="${r.reward}" onchange="currentRules[${i}].reward=this.value" class="w-24 border border-gray-200 p-2 text-sm rounded bg-white" placeholder="奖励">
+                <div class="flex gap-2 items-center bg-gray-50 p-3 rounded border border-gray-100">
+                    <input type="text" value="${r.condition}" onchange="currentRules[${i}].condition=this.value" class="flex-1 border border-gray-200 p-2 text-sm rounded" placeholder="例如：设计方案定金">
+                    <input type="text" value="${r.value}" onchange="currentRules[${i}].value=this.value" class="flex-1 border border-gray-200 p-2 text-sm rounded" placeholder="例如：3000元">
+                    <input type="text" value="${r.reward}" onchange="currentRules[${i}].reward=this.value" class="w-24 border border-gray-200 p-2 text-sm rounded" placeholder="例如：1次">
                     <button onclick="currentRules.splice(${i}, 1); renderRules()" class="text-red-400 hover:text-red-600 text-xs px-2">删除</button>
                 </div>
             `).join('');
         }
-        function addRule() { currentRules.push({ condition: "新门槛", value: "0元", reward: "1次" }); renderRules(); }
+        function addRule() { currentRules.push({ condition: "新门槛要求", value: "0元", reward: "1次" }); renderRules(); }
 
         async function saveConfig() {
             const payload = {
@@ -196,24 +266,31 @@
                 brandPhilosophy: document.getElementById('configPhilosophy').value,
                 paymentCopy: document.getElementById('configPaymentCopy').value,
                 qrCodeUrl: document.getElementById('configQrCodeUrl').value,
-                rules: currentRules,
-                startTime: document.getElementById('configStartTime').value || new Date(),
-                endTime: document.getElementById('configEndTime').value || new Date()
+                logoColorUrl: document.getElementById('logoColorUrl').value,
+                logoBlackUrl: document.getElementById('logoBlackUrl').value,
+                logoWhiteUrl: document.getElementById('logoWhiteUrl').value,
+                rules: currentRules
             };
+            
             await fetch('/api/config', { method: 'POST', headers, body: JSON.stringify(payload) });
-            alert('品牌营销配置已保存！首页已实时更新。');
+            alert('品牌资产与营销配置已保存，前台将立即同步更新。');
         }
 
         function renderPrizes() {
             document.getElementById('prizesList').innerHTML = currentData.prizes.map((p, i) => `
-                <div class="flex gap-3 items-center bg-gray-50 p-3 rounded border border-gray-100 shadow-sm">
-                    <input type="text" value="${p.name}" onchange="currentData.prizes[${i}].name=this.value" class="flex-1 border border-gray-200 p-2 text-sm rounded focus:border-[#8C6A4F] focus:outline-none">
-                    <input type="number" value="${p.weight}" onchange="currentData.prizes[${i}].weight=Number(this.value)" class="w-20 border border-gray-200 p-2 text-sm rounded focus:border-[#8C6A4F] focus:outline-none" title="概率权重">
-                    <button onclick="currentData.prizes.splice(${i}, 1); renderPrizes()" class="text-gray-400 hover:text-red-500 text-xs transition">删除</button>
+                <div class="flex gap-3 items-center bg-gray-50 p-3 rounded border border-gray-100">
+                    <input type="text" value="${p.name}" onchange="currentData.prizes[${i}].name=this.value" class="flex-1 border border-gray-200 p-2 text-sm rounded focus:border-black focus:outline-none" placeholder="英文分类 - 中文奖品">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-400">权重</span>
+                        <input type="number" value="${p.weight}" onchange="currentData.prizes[${i}].weight=Number(this.value)" class="w-16 border border-gray-200 p-2 text-sm rounded text-center">
+                    </div>
+                    <button onclick="currentData.prizes.splice(${i}, 1); renderPrizes()" class="text-red-400 hover:text-red-600 text-xs px-2">删除</button>
                 </div>
             `).join('');
         }
+
         function addPrize() { currentData.prizes.push({ name: "NEW GIFT - 新奖品", weight: 10 }); renderPrizes(); }
+        
         async function savePrizes() {
             await fetch('/api/admin/prizes', { method: 'POST', headers, body: JSON.stringify(currentData.prizes) });
             alert('奖品陈列库已同步至前台！');
@@ -253,42 +330,8 @@
             });
             alert('管理员账号更新成功！请记住您的新账号密码。');
             if(phone !== localStorage.getItem('token')) {
-                localStorage.setItem('token', phone); 
+                localStorage.setItem('token', phone); // 若更改了手机号，同步更新凭证防掉线
             }
-        }
-
-        async function loadLeads() {
-            const res = await fetch('/api/admin/leads', { headers });
-            const leads = await res.json();
-            
-            document.getElementById('leadsList').innerHTML = leads.map(lead => `
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="p-3 text-gray-400">${lead.claimTime.split(' ')[0]}</td>
-                    <td class="p-3 font-bold">${lead.userName}</td>
-                    <td class="p-3 font-medium">${lead.userPhone}</td>
-                    <td class="p-3">${lead.city}</td>
-                    <td class="p-3 font-serif text-[#8C6A4F] font-bold">${lead.prizeName.includes('-') ? lead.prizeName.split('-')[1].trim() : lead.prizeName}</td>
-                    <td class="p-3"><span class="bg-gray-100 px-2 py-1 rounded text-xs">${lead.stage} / ${lead.layout}</span></td>
-                    <td class="p-3">${lead.budget}</td>
-                    <td class="p-3 text-right">
-                        <select onchange="updateLeadStatus('${lead._id}', this.value)" class="text-xs border border-gray-200 p-1 rounded ${lead.status==='已成交'?'bg-green-50 text-green-700':(lead.status==='新客户'?'bg-red-50 text-red-600':'bg-white')}">
-                            <option value="新客户" ${lead.status==='新客户'?'selected':''}>新客户</option>
-                            <option value="已联系" ${lead.status==='已联系'?'selected':''}>已联系</option>
-                            <option value="已预约" ${lead.status==='已预约'?'selected':''}>已预约</option>
-                            <option value="已成交" ${lead.status==='已成交'?'selected':''}>已成交</option>
-                            <option value="无效" ${lead.status==='无效'?'selected':''}>无效</option>
-                        </select>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        async function updateLeadStatus(id, status) {
-            await fetch('/api/admin/leads/status', {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({ id, status })
-            });
         }
 
         function logout() { localStorage.removeItem('token'); window.location.href = '/login.html'; }

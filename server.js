@@ -1,168 +1,4 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const path = require('path');
-const app = express();
-
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.get('/', (req, res) => {
-    res.redirect('/login.html');
-});
-
-// ==========================================
-// 1. 数据库连接设置
-// ==========================================
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://你的账号:你的密码@cluster0.xxxx.mongodb.net/lottery?retryWrites=true&w=majority";
-
-mongoose.connect(MONGODB_URI)
-    .then(() => console.log('✅ MongoDB 云数据库连接成功！'))
-    .catch(err => console.error('❌ MongoDB 连接失败:', err));
-
-// ==========================================
-// 2. 定义数据模型 (Schema)
-// ==========================================
-const userSchema = new mongoose.Schema({
-    phone: { type: String, required: true, unique: true },
-    password: { type: String, default: "" },
-    role: { type: String, default: "user" },
-    chances: { type: Number, default: 1 },
-    rewards: [{ name: String, time: String }]
-});
-const User = mongoose.model('User', userSchema);
-
-const prizeSchema = new mongoose.Schema({
-    name: { type: String, required: true },
-    weight: { type: Number, required: true }
-});
-const Prize = mongoose.model('Prize', prizeSchema);
-
-const leadSchema = new mongoose.Schema({
-    userName: String,
-    userPhone: String,
-    city: String,
-    stage: String,
-    layout: String,
-    budget: String,
-    prizeName: String,
-    claimTime: String,
-    status: { type: String, default: "新客户" } 
-});
-const Lead = mongoose.model('Lead', leadSchema);
-
-const configSchema = new mongoose.Schema({
-    identifier: { type: String, default: "global", unique: true },
-    title: String,
-    subtitle: String,
-    paymentCopy: String,
-    qrCodeUrl: String,
-    rules: Array,
-    brandPhilosophy: String,
-    logoColorUrl: String,
-    logoBlackUrl: String,
-    logoWhiteUrl: String,
-    startTime: { type: Date, default: new Date() },
-    endTime: { type: Date, default: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000) }
-});
-const Config = mongoose.model('Config', configSchema);
-
-// ==========================================
-// 3. 自动初始化数据
-// ==========================================
-async function initData() {
-    try {
-        if (await User.countDocuments() === 0) {
-            await User.create({ phone: "15728656310", password: "000000", role: "admin", chances: 0, rewards: [] });
-            console.log("初始化: 管理员账号已创建");
-        }
-        if (await Prize.countDocuments() === 0) {
-            await Prize.insertMany([
-                { name: "NOEY DESIGN GIFT - 设计师床头柜", weight: 2 }, 
-                { name: "NOEY COLLECTION - 极简边几", weight: 8 },
-                { name: "CUSTOM UPGRADE - 拉直器2套", weight: 30 }, 
-                { name: "HOME BONUS - 定制优惠券500元", weight: 30 }, 
-                { name: "HOME BONUS - 定制优惠券1000元", weight: 30 }
-            ]);
-            console.log("初始化: 默认奖品池已创建");
-        }
-        if (await Config.countDocuments() === 0) {
-            await Config.create({ 
-                identifier: "global",
-                title: "NOEY 幸运礼遇", 
-                subtitle: "为每一位选择诺一家具的客户，准备专属定制礼物。",
-                paymentCopy: "尊享专属设计方案，支付定金即刻解锁至臻礼遇。请扫码支付后联系您的专属设计师为您录入抽奖次数。",
-                qrCodeUrl: "https://cdn.phototourl.com/free/2026-07-18-98c9e787-a88e-4b7d-969f-3cb31603a68c.png",
-                rules: [
-                    { condition: "设计方案定金", value: "3000元", reward: "1次" },
-                    { condition: "家具订单", value: "20000元", reward: "3次" },
-                    { condition: "整屋定制", value: "50000元以上", reward: "8次" }
-                ],
-                brandPhilosophy: "以设计回应生活，以品质兑现承诺",
-                logoColorUrl: "https://i.hd-r.cn/0f8d5bee-a893-4a9d-acd6-d8a9c5b4357f.png",
-                logoBlackUrl: "https://i.hd-r.cn/10eebc24-8a58-463e-9433-0e7d54bada9c.png",
-                logoWhiteUrl: "https://i.hd-r.cn/10e4b29a-4ea1-4f46-884c-ff4e913cd476.png"
-            });
-            console.log("初始化: 全局配置已创建");
-        }
-    } catch (err) { console.error("初始化数据失败:", err); }
-}
-setTimeout(initData, 2000);
-
-// ==========================================
-// 4. 权限拦截器 (中间件)
-// ==========================================
-const requireAdmin = async (req, res, next) => {
-    const phone = req.headers.authorization;
-    const user = await User.findOne({ phone: phone, role: 'admin' });
-    if (!user) return res.status(403).json({ error: '权限不足' });
-    next();
-};
-
-// ==========================================
-// 5. API 接口
-// ==========================================
-app.get('/api/config', async (req, res) => {
-    const config = await Config.findOne({ identifier: "global" });
-    res.json(config || {});
-});
-
-app.post('/api/config', requireAdmin, async (req, res) => {
-    await Config.findOneAndUpdate({ identifier: "global" }, req.body, { upsert: true });
-    res.json({ success: true });
-});
-
-app.get('/api/prizes', async (req, res) => {
-    const prizes = await Prize.find();
-    res.json(prizes);
-});
-
-app.get('/api/stats', async (req, res) => {
-    const users = await User.find({ role: 'user' });
-    const totalUsers = users.length;
-    const totalRewards = users.reduce((sum, u) => sum + u.rewards.length, 0);
-    res.json({ totalUsers: totalUsers, totalRewards: totalRewards });
-});
-
-app.post('/api/login', async (req, res) => {
-    try {
-        const { phone, password, isAdminLogin } = req.body;
-        let user = await User.findOne({ phone: phone });
-
-        if (isAdminLogin) {
-            if (!user || user.password !== password || user.role !== 'admin') {
-                return res.status(401).json({ error: '管理员账号或密码错误' });
-            }
-            return res.json({ token: user.phone, role: user.role });
-        } else {
-            if (user && user.role === 'admin') return res.status(403).json({ error: '管理员请通过专属通道登录' });
-            if (!user) {
-                user = await User.create({ phone, role: 'user', chances: 1, rewards: [] });
-            }
-            return res.json({ token: user.phone, role: user.role });
-        }
-    } catch (err) { res.status(500).json({ error: '服务器错误' }); }
-});
-
+// ... existing code ...
 app.get('/api/user', async (req, res) => {
     const phone = req.headers.authorization;
     const user = await User.findOne({ phone: phone });
@@ -171,12 +7,6 @@ app.get('/api/user', async (req, res) => {
 
 app.post('/api/draw', async (req, res) => {
     try {
-        const config = await Config.findOne({ identifier: "global" });
-        const now = new Date();
-        if (now < config.startTime || now > config.endTime) {
-            return res.status(400).json({ error: '不在活动时间内，无法抽奖' });
-        }
-        
         const phone = req.headers.authorization;
         const user = await User.findOne({ phone: phone });
         
@@ -186,86 +16,58 @@ app.post('/api/draw', async (req, res) => {
 
         const prizes = await Prize.find();
         const totalWeight = prizes.reduce((sum, p) => sum + Number(p.weight), 0);
-        let randomNum = Math.random() * totalWeight;
-        let wonPrize = prizes[prizes.length - 1];
+// ... existing code ...
+```
 
-        for (let prize of prizes) {
-            if (randomNum < prize.weight) { wonPrize = prize; break; }
-            randomNum -= prize.weight;
+### 2. 移除后台时间配置项 (`public/admin.html`)
+清理掉后台页面中设置时间的输入框和对应逻辑。
+
+**第一处：移除 HTML 界面输入框**
+```html:后台系统页面:public/admin.html
+<!-- ... existing code ... -->
+        <div class="bg-white p-6 rounded-lg shadow-sm mb-8 border-t-4 border-[#1A1A1A]">
+            <h2 class="text-lg font-bold mb-6">品牌资产与营销配置 (前台实时生效)</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1 tracking-widest">活动大标题</label>
+                    <input type="text" id="configTitle" class="w-full border border-gray-200 p-2 text-sm rounded bg-gray-50 focus:bg-white focus:outline-none focus:border-black">
+                </div>
+<!-- ... existing code ... -->
+```
+
+**第二处：移除初始化加载时间数据的 JS 逻辑**
+```html:后台系统页面:public/admin.html
+<!-- ... existing code ... -->
+        async function init() {
+            const cfgRes = await fetch('/api/config');
+            const config = await cfgRes.json();
+            
+            document.getElementById('configTitle').value = config.title;
+            document.getElementById('configSubtitle').value = config.subtitle;
+            document.getElementById('configPhilosophy').value = config.brandPhilosophy || "";
+            document.getElementById('configPaymentCopy').value = config.paymentCopy || "";
+<!-- ... existing code ... -->
+```
+
+**第三处：移除保存设置时的时间提交流程**
+```html:后台系统页面:public/admin.html
+<!-- ... existing code ... -->
+        async function saveConfig() {
+            const payload = {
+                title: document.getElementById('configTitle').value,
+                subtitle: document.getElementById('configSubtitle').value,
+                brandPhilosophy: document.getElementById('configPhilosophy').value,
+                paymentCopy: document.getElementById('configPaymentCopy').value,
+                qrCodeUrl: document.getElementById('configQrCodeUrl').value,
+                rules: currentRules
+            };
+            await fetch('/api/config', { method: 'POST', headers, body: JSON.stringify(payload) });
+            alert('品牌营销配置已保存！首页已实时更新。');
         }
 
-        user.chances -= 1;
-        user.rewards.push({ name: wonPrize.name, time: new Date().toLocaleString() });
-        await user.save(); 
+        function renderPrizes() {
+<!-- ... existing code ... -->
+```
 
-        res.json({ prize: wonPrize, user: user });
-    } catch (err) { res.status(500).json({ error: '抽奖失败' }); }
-});
-
-app.post('/api/claim', async (req, res) => {
-    try {
-        const phone = req.headers.authorization;
-        if (!phone) return res.status(401).json({ error: '非法请求' });
-        
-        const newLead = await Lead.create({
-            userName: req.body.userName,
-            userPhone: req.body.userPhone || phone,
-            city: req.body.city,
-            stage: req.body.stage,
-            layout: req.body.layout,
-            budget: req.body.budget,
-            prizeName: req.body.prizeName,
-            claimTime: new Date().toLocaleString(),
-            status: '新客户'
-        });
-        res.json({ success: true, lead: newLead });
-    } catch (err) { res.status(500).json({ error: '提交失败' }); }
-});
-
-app.get('/api/admin/leads', requireAdmin, async (req, res) => {
-    const leads = await Lead.find().sort({ _id: -1 });
-    res.json(leads);
-});
-
-app.post('/api/admin/leads/status', requireAdmin, async (req, res) => {
-    await Lead.findByIdAndUpdate(req.body.id, { status: req.body.status });
-    res.json({ success: true });
-});
-
-app.get('/api/admin/data', requireAdmin, async (req, res) => {
-    const users = await User.find({ role: 'user' });
-    const prizes = await Prize.find();
-    const admin = await User.findOne({ role: 'admin' });
-    res.json({ users, prizes, admin });
-});
-
-app.post('/api/admin/prizes', requireAdmin, async (req, res) => {
-    await Prize.deleteMany({}); 
-    await Prize.insertMany(req.body); 
-    res.json({ success: true });
-});
-
-app.post('/api/admin/users', requireAdmin, async (req, res) => {
-    const incomingUsers = req.body;
-    for (let u of incomingUsers) {
-        if (u.phone && u.role !== 'admin') {
-            await User.updateOne({ phone: u.phone }, { chances: u.chances });
-        }
-    }
-    res.json({ success: true });
-});
-
-app.post('/api/admin/account', requireAdmin, async (req, res) => {
-    const admin = await User.findOne({ role: 'admin' });
-    if (admin) {
-        admin.phone = req.body.phone;
-        if (req.body.password) admin.password = req.body.password;
-        await admin.save();
-    }
-    res.json({ success: true });
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`\n🚀 服务已启动! 运行在端口: ${PORT}\n`);
-});
+如果您指的是其他倒计时（例如您本地曾经添加过的某个前端倒计时卡片），您只需在您的 `index.html` 里直接删除那段 `<section>...</section>` 即可。完成上述修改并推送到云端后，抽奖限制就彻底解除了！

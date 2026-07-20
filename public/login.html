@@ -86,6 +86,10 @@
             const phone = isAdminLogin ? document.getElementById('adminPhone').value : document.getElementById('userPhone').value;
             const password = isAdminLogin ? document.getElementById('adminPwd').value : "";
             
+            // 解析朋友发来的专属邀请参数
+            const urlParams = new URLSearchParams(window.location.search);
+            const inviter = urlParams.get('inviter');
+            
             if (!phone) return alert('请输入手机号');
 
             const btn = event.target;
@@ -97,7 +101,7 @@
                 const res = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone, password, isAdminLogin })
+                    body: JSON.stringify({ phone, password, isAdminLogin, inviter })
                 });
                 const data = await res.json();
 

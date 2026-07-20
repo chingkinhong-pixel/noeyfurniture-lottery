@@ -27,11 +27,7 @@ const userSchema = new mongoose.Schema({
     password: { type: String, default: "" },
     role: { type: String, default: "user" },
     chances: { type: Number, default: 1 },
-    rewards: [{ name: String, time: String }],
-    // 新增：裂变拉新数据追踪
-    shareCount: { type: Number, default: 0 },
-    inviteCount: { type: Number, default: 0 },
-    hasShared: { type: Boolean, default: false }
+    rewards: [{ name: String, time: String }]
 });
 const User = mongoose.model('User', userSchema);
 
@@ -149,7 +145,7 @@ app.get('/api/stats', async (req, res) => {
 
 app.post('/api/login', async (req, res) => {
     try {
-        const { phone, password, isAdminLogin, inviter } = req.body;
+        const { phone, password, isAdminLogin } = req.body;
         let user = await User.findOne({ phone: phone });
 
         if (isAdminLogin) {
@@ -161,10 +157,6 @@ app.post('/api/login', async (req, res) => {
             if (user && user.role === 'admin') return res.status(403).json({ error: '管理员请通过专属通道登录' });
             if (!user) {
                 user = await User.create({ phone, role: 'user', chances: 1, rewards: [] });
-                // 核心：处理朋友扫码带来的裂变邀请逻辑
-                if (inviter && inviter !== phone) {
-                    await User.updateOne({ phone: inviter }, { $inc: { inviteCount: 1 } });
-                }
             }
             return res.json({ token: user.phone, role: user.role });
         }
@@ -179,6 +171,12 @@ app.get('/api/user', async (req, res) => {
 
 app.post('/api/draw', async (req, res) => {
     try {
+        const config = await Config.findOne({ identifier: "global" });
+        const now = new Date();
+        if (now < config.startTime || now > config.endTime) {
+            return res.status(400).json({ error: '不在活动时间内，无法抽奖' });
+        }
+        
         const phone = req.headers.authorization;
         const user = await User.findOne({ phone: phone });
         
@@ -204,27 +202,24 @@ app.post('/api/draw', async (req, res) => {
     } catch (err) { res.status(500).json({ error: '抽奖失败' }); }
 });
 
-// ==========================================
-// 新增：分享奖励接口
-// ==========================================
-app.post('/api/share', async (req, res) => {
+app.post('/api/claim', async (req, res) => {
     try {
         const phone = req.headers.authorization;
-        const user = await User.findOne({ phone: phone });
-        if (!user) return res.status(401).json({ error: '非法请求' });
-
-        user.shareCount = (user.shareCount || 0) + 1;
-        let rewarded = false;
+        if (!phone) return res.status(401).json({ error: '非法请求' });
         
-        // 防刷限制：每个账号仅限领取一次额外机会
-        if (!user.hasShared) {
-            user.chances += 1;
-            user.hasShared = true;
-            rewarded = true;
-        }
-        await user.save();
-        res.json({ success: true, rewarded: rewarded, chances: user.chances });
-    } catch (err) { res.status(500).json({ error: '分享记录失败' }); }
+        const newLead = await Lead.create({
+            userName: req.body.userName,
+            userPhone: req.body.userPhone || phone,
+            city: req.body.city,
+            stage: req.body.stage,
+            layout: req.body.layout,
+            budget: req.body.budget,
+            prizeName: req.body.prizeName,
+            claimTime: new Date().toLocaleString(),
+            status: '新客户'
+        });
+        res.json({ success: true, lead: newLead });
+    } catch (err) { res.status(500).json({ error: '提交失败' }); }
 });
 
 app.get('/api/admin/leads', requireAdmin, async (req, res) => {

@@ -173,11 +173,12 @@
             
             <div class="text-center">
                 <p class="text-[10px] text-[#D4AF37] tracking-[0.4em] uppercase mb-2">Congratulations</p>
-                <h3 class="text-xl serif-font text-white mb-1">恭喜您获得</h3>
+                <h3 class="text-xl serif-font text-white mb-1">恭喜您抽中</h3>
                 <p id="modalPrizeName" class="text-lg text-[#E6D5B8] serif-font font-bold mb-4 pb-4 border-b border-white/10">奖品名称</p>
             </div>
             
-            <h4 class="text-xs text-[#D4AF37] mb-4 text-center tracking-widest font-bold">填写信息，专属顾问将为您兑现礼遇</h4>
+            <h4 class="text-xs text-[#D4AF37] mb-4 text-center tracking-widest font-bold">请完善信息，专属顾问将为您兑现礼遇</h4>
+            <p class="text-[9px] text-gray-400 text-center mb-4 leading-relaxed">请务必正确填写，以便我们及时为您发放奖励。若放弃填写，视为自动放弃该奖品。</p>
             
             <!-- 信息登记表单 -->
             <div class="space-y-3 text-left">
@@ -228,7 +229,7 @@
             </div>
 
             <div class="mt-6 flex gap-2">
-                <button onclick="closeResultModal()" class="flex-1 bg-transparent text-gray-400 py-3 rounded text-[10px] tracking-widest uppercase hover:text-white transition-colors">
+                <button onclick="abandonPrize()" class="flex-1 bg-transparent text-gray-400 py-3 rounded text-[10px] tracking-widest uppercase hover:text-white transition-colors border border-gray-600">
                     稍后再说
                 </button>
                 <button onclick="submitClaim()" class="flex-2 w-2/3 bg-[#D4AF37] text-black py-3 rounded text-[10px] tracking-widest uppercase font-bold hover:bg-white transition-colors" id="claimSubmitBtn">
@@ -285,14 +286,33 @@
                 renderWheel(prizes);
 
                 // 4. 获取用户数据
-                const userRes = await fetch('/api/user', { headers });
-                if (userRes.status === 404 || userRes.status === 403) return logout();
-                const user = await userRes.json();
-                
-                document.getElementById('userPhone').innerText = user.phone.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2");
-                updateUserUI(user);
+                await refreshUserData();
             } catch (e) {
                 console.error("加载失败", e);
+            }
+        }
+
+        async function refreshUserData() {
+            const userRes = await fetch('/api/user', { headers });
+            if (userRes.status === 404 || userRes.status === 403) return logout();
+            const user = await userRes.json();
+            
+            document.getElementById('userPhone').innerText = user.phone.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2");
+            updateUserUI(user);
+            
+            // 如果用户存在未领取的奖品，重新弹出填写框
+            if(user.pendingPrize) {
+                let displayName = user.pendingPrize;
+                if(displayName.includes('-')) displayName = displayName.split('-')[1].trim();
+                else if(displayName.includes('：')) displayName = displayName.split('：')[1].trim();
+                
+                document.getElementById('modalPrizeName').innerText = displayName;
+                document.getElementById('claimPrizeName').value = user.pendingPrize; 
+                
+                if(!document.getElementById('claimPhone').value) {
+                    document.getElementById('claimPhone').value = user.phone;
+                }
+                showResultModal();
             }
         }
 
@@ -407,7 +427,14 @@
 
             const res = await fetch('/api/draw', { method: 'POST', headers });
             const data = await res.json();
-            if (data.error) { alert(data.error); isDrawing = false; return; }
+            if (data.error) { 
+                alert(data.error); 
+                if(data.hasPending) {
+                    refreshUserData(); // 如果有未领取的奖品，刷新唤起弹窗
+                }
+                isDrawing = false; 
+                return; 
+            }
 
             const targetIndex = prizes.findIndex(p => p.name === data.prize.name);
             const sliceAngle = 360 / prizes.length;
@@ -427,7 +454,7 @@
                 
                 // 设置弹窗内要显示的奖品
                 document.getElementById('modalPrizeName').innerText = displayName;
-                document.getElementById('claimPrizeName').value = displayName; // 记录表单隐藏字段
+                document.getElementById('claimPrizeName').value = data.prize.name; // 记录表单隐藏字段(完整名)
                 
                 // 默认将客户的注册手机号填入联系电话表单（后台获取脱敏前的真实手机号）
                 if(!document.getElementById('claimPhone').value) {
@@ -437,10 +464,21 @@
                 showResultModal();
                 updateUserUI(data.user);
                 isDrawing = false;
-                
-                const el = document.getElementById('statRewards');
-                if(el.innerText !== '-') el.innerText = parseInt(el.innerText) + 1;
             }, 4700);
+        }
+
+        // 修改：增加放弃奖品逻辑
+        async function abandonPrize() {
+            const confirmed = confirm('【重要提示】\n若稍后再说，您本次抽中的奖品将会丢失，且抽奖次数无法退回。\n您确定要放弃本次奖品吗？');
+            if(confirmed) {
+                try {
+                    await fetch('/api/abandon', { method: 'POST', headers });
+                    closeResultModal();
+                    await refreshUserData();
+                } catch(e) {
+                    console.error("放弃操作失败", e);
+                }
+            }
         }
 
         async function submitClaim() {
@@ -450,8 +488,7 @@
                 city: document.getElementById('claimCity').value,
                 stage: document.getElementById('claimStage').value,
                 layout: document.getElementById('claimLayout').value,
-                budget: document.getElementById('claimBudget').value,
-                prizeName: document.getElementById('claimPrizeName').value
+                budget: document.getElementById('claimBudget').value
             };
             
             if(!data.userName || !data.userPhone || !data.city) {
@@ -473,6 +510,11 @@
                 
                 alert('登记成功！系统已录入，您的专属顾问将尽快与您联系。');
                 closeResultModal();
+                await refreshUserData(); // 刷新UI，显示新加入的奖励记录
+                
+                const el = document.getElementById('statRewards');
+                if(el.innerText !== '-') el.innerText = parseInt(el.innerText) + 1;
+                
             } catch(e) {
                 alert(e.message || '提交失败');
             } finally {

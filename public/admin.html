@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 新增：强制关闭 Referrer 防盗链，解决微信图片破损问题 -->
+    <meta name="referrer" content="no-referrer">
     <title>NOEY 诺一家具 - 后台管理</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -214,6 +216,7 @@
         }
 
         function renderUsers() {
+            // 在渲染用户列表时，加入客户登记信息的展示，以及清空奖品按钮
             document.getElementById('usersList').innerHTML = currentData.users.map((u, i) => `
                 <div class="flex flex-col gap-2 bg-white p-4 rounded border border-gray-100 shadow-sm relative">
                     <div class="flex justify-between items-center">
@@ -229,7 +232,7 @@
                     <div class="flex justify-between items-start text-[10px] text-gray-400 mt-1 leading-relaxed border-t pt-2 border-gray-50">
                         <div class="flex-1 pr-2">
                             ${u.rewards.length ? '已送出: ' + u.rewards.map(r=>r.name.includes('-') ? r.name.split('-')[1].trim() : r.name).join('，') : '暂未获得礼遇'}
-                            ${u.claimInfo && u.claimInfo.city ? `<br>客户信息: ${u.claimInfo.city} | ${u.claimInfo.stage} | ${u.claimInfo.layout} | ${u.claimInfo.budget}` : ''}
+                            ${u.claimInfo && u.claimInfo.city ? `<br>客户登记信息: ${u.claimInfo.userPhone || ''} | ${u.claimInfo.city} | ${u.claimInfo.stage} | ${u.claimInfo.layout} | ${u.claimInfo.budget}` : ''}
                         </div>
                         <button onclick="resetUserRewards('${u.phone}')" class="text-red-400 hover:text-red-600 border border-red-200 px-2 py-1 rounded bg-red-50 transition-colors whitespace-nowrap">
                             清空奖品
@@ -257,7 +260,7 @@
                 const data = await res.json();
                 if(data.success) {
                     alert('清空成功');
-                    // 重新加载数据并渲染
+                    // 重新加载数据并渲染，确保前端列表刷新
                     const resData = await fetch('/api/admin/data', { headers });
                     currentData = await resData.json();
                     renderUsers();

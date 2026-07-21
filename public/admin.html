@@ -120,33 +120,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- 销售线索 (CRM) 追踪模块 -->
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100 mt-8 border-t-4 border-[#8C6A4F]">
-            <h2 class="text-lg font-bold mb-2">中奖客户跟进 (Sales CRM)</h2>
-            <p class="text-xs text-gray-400 mb-6">前台用户中奖后登记的个人信息将自动汇集于此，销售顾问可实时跟进流转。</p>
-            
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm whitespace-nowrap">
-                    <thead class="bg-gray-50 text-gray-500 text-xs">
-                        <tr>
-                            <th class="p-3">登记时间</th>
-                            <th class="p-3">客户姓名</th>
-                            <th class="p-3">联系电话</th>
-                            <th class="p-3">所在城市</th>
-                            <th class="p-3 text-[#1A1A1A]">所获奖品</th>
-                            <th class="p-3">需求 (阶段/户型)</th>
-                            <th class="p-3">定制预算</th>
-                            <th class="p-3 text-right">当前跟进状态</th>
-                        </tr>
-                    </thead>
-                    <tbody id="leadsList" class="divide-y divide-gray-100">
-                        <!-- 由JS渲染销售线索 -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
     </div>
 
     <script>
@@ -155,7 +128,6 @@
         const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
         let currentData = { prizes: [], users: [] };
         let currentRules = [];
-        let currentLeads = []; // 新增线索容器
 
         async function init() {
             // 加载配置
@@ -190,62 +162,7 @@
 
             renderPrizes();
             renderUsers();
-            
-            // 异步拉取线索登记表
-            fetchLeads();
         }
-
-        // --- 线索管理模块核心方法 ---
-        async function fetchLeads() {
-            try {
-                const res = await fetch('/api/admin/leads', { headers });
-                currentLeads = await res.json();
-                renderLeads();
-            } catch(e) { console.error('加载线索失败'); }
-        }
-
-        function renderLeads() {
-            const tbody = document.getElementById('leadsList');
-            if(currentLeads.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="p-8 text-center text-gray-400 text-sm tracking-widest">暂无客户登记数据</td></tr>`;
-                return;
-            }
-            tbody.innerHTML = currentLeads.map(lead => `
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="p-3 text-xs text-gray-400">${lead.claimTime.split(' ')[0]}<br><span class="text-[10px]">${lead.claimTime.split(' ')[1] || ''}</span></td>
-                    <td class="p-3 font-bold text-gray-800">${lead.userName}</td>
-                    <td class="p-3 text-xs text-gray-600">${lead.userPhone}</td>
-                    <td class="p-3 text-xs text-gray-600">${lead.city || '-'}</td>
-                    <td class="p-3 font-bold text-[#8C6A4F] text-xs">${lead.prizeName}</td>
-                    <td class="p-3 text-xs text-gray-600">${lead.stage} / ${lead.layout}</td>
-                    <td class="p-3 text-xs font-medium ${lead.budget.includes('50') ? 'text-red-500' : 'text-gray-600'}">${lead.budget}</td>
-                    <td class="p-3 text-right">
-                        <select onchange="updateLeadStatus('${lead._id}', this.value)" class="text-xs border border-gray-200 p-1.5 rounded bg-white focus:outline-none focus:border-black ${lead.status === '已成交' ? 'text-green-600 font-bold bg-green-50 border-green-200' : (lead.status === '新客户' ? 'text-red-500 font-bold' : '')}">
-                            <option value="新客户" ${lead.status === '新客户' ? 'selected' : ''}>🚨 新客户</option>
-                            <option value="已联系" ${lead.status === '已联系' ? 'selected' : ''}>已联系</option>
-                            <option value="已预约" ${lead.status === '已预约' ? 'selected' : ''}>已预约量尺</option>
-                            <option value="已成交" ${lead.status === '已成交' ? 'selected' : ''}>✅ 已成交</option>
-                            <option value="无效" ${lead.status === '无效' ? 'selected' : ''}>无效</option>
-                        </select>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        async function updateLeadStatus(id, newStatus) {
-            try {
-                await fetch('/api/admin/leads/status', {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({ id, status: newStatus })
-                });
-                // 仅静默更新数据库，不打断销售操作，体验更好
-                fetchLeads(); // 刷新高亮UI
-            } catch(e) {
-                alert('状态更新失败');
-            }
-        }
-        // --- 结束 ---
 
         function renderRules() {
             document.getElementById('rulesList').innerHTML = currentRules.map((r, i) => `
@@ -298,16 +215,25 @@
 
         function renderUsers() {
             document.getElementById('usersList').innerHTML = currentData.users.map((u, i) => `
-                <div class="flex flex-col gap-2 bg-white p-4 rounded border border-gray-100 shadow-sm">
+                <div class="flex flex-col gap-2 bg-white p-4 rounded border border-gray-100 shadow-sm relative">
                     <div class="flex justify-between items-center">
-                        <div class="font-bold text-sm tracking-wider">${u.phone}</div>
+                        <div class="font-bold text-sm tracking-wider">
+                            ${u.phone}
+                            ${u.claimInfo && u.claimInfo.userName ? `<span class="text-xs font-normal text-gray-500 ml-2">(${u.claimInfo.userName})</span>` : ''}
+                        </div>
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-gray-500">操作剩余次数:</span>
                             <input type="number" value="${u.chances}" onchange="currentData.users[${i}].chances=Number(this.value)" class="w-16 border border-gray-200 p-1 text-sm rounded text-center focus:border-[#8C6A4F] focus:outline-none">
                         </div>
                     </div>
-                    <div class="text-[10px] text-gray-400 mt-1 leading-relaxed border-t pt-2 border-gray-50">
-                        ${u.rewards.length ? '已送出: ' + u.rewards.map(r=>r.name.includes('-') ? r.name.split('-')[1].trim() : r.name).join('，') : '暂未获得礼遇'}
+                    <div class="flex justify-between items-start text-[10px] text-gray-400 mt-1 leading-relaxed border-t pt-2 border-gray-50">
+                        <div class="flex-1 pr-2">
+                            ${u.rewards.length ? '已送出: ' + u.rewards.map(r=>r.name.includes('-') ? r.name.split('-')[1].trim() : r.name).join('，') : '暂未获得礼遇'}
+                            ${u.claimInfo && u.claimInfo.city ? `<br>客户信息: ${u.claimInfo.city} | ${u.claimInfo.stage} | ${u.claimInfo.layout} | ${u.claimInfo.budget}` : ''}
+                        </div>
+                        <button onclick="resetUserRewards('${u.phone}')" class="text-red-400 hover:text-red-600 border border-red-200 px-2 py-1 rounded bg-red-50 transition-colors whitespace-nowrap">
+                            清空奖品
+                        </button>
                     </div>
                 </div>
             `).join('');
@@ -316,6 +242,31 @@
         async function saveUsers() {
             await fetch('/api/admin/users', { method: 'POST', headers, body: JSON.stringify(currentData.users) });
             alert('客户资产池状态更新成功！');
+        }
+
+        // 新增：清空用户奖品方法
+        async function resetUserRewards(phone) {
+            if(!confirm(`确定要清空用户 ${phone} 的所有中奖记录吗？此操作不可恢复。`)) return;
+            
+            try {
+                const res = await fetch('/api/admin/reset-rewards', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ phone })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    alert('清空成功');
+                    // 重新加载数据并渲染
+                    const resData = await fetch('/api/admin/data', { headers });
+                    currentData = await resData.json();
+                    renderUsers();
+                } else {
+                    alert(data.error || '清空失败');
+                }
+            } catch (err) {
+                alert('清空操作失败');
+            }
         }
 
         async function saveAdminAccount() {

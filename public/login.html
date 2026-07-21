@@ -60,7 +60,7 @@
     <script>
         let isAdminView = false;
 
-        // 获取动态配置及 Logo
+       // 获取动态配置及 Logo
         fetch('/api/config').then(res => res.json()).then(data => {
             document.getElementById('pageTitle').innerText = data.title || 'NOEY 诺一家具';
             document.getElementById('pageSubtitle').innerText = data.subtitle || '为每一位客户准备专属定制礼物';
@@ -72,7 +72,8 @@
             const MY_LOGO_COLOR = 'https://i.hd-r.cn/0f8d5bee-a893-4a9d-acd6-d8a9c5b4357f.png';
             
             const logoEl = document.getElementById('loginLogo');
-            logoEl.src = data.logoColorUrl || MY_LOGO_COLOR;
+            // 增加判断，防止 data.logoColorUrl 为空字符串导致图片失效
+            logoEl.src = (data.logoColorUrl && data.logoColorUrl.trim() !== '') ? data.logoColorUrl : MY_LOGO_COLOR;
             logoEl.classList.remove('hidden');
         });
 

@@ -263,9 +263,10 @@
                 const MY_LOGO_COLOR = 'https://i.hd-r.cn/0f8d5bee-a893-4a9d-acd6-d8a9c5b4357f.png'; 
 
                 // 智能分配 Logo (如果后台被清空了，将永久使用硬编码的链接)
-                document.getElementById('logoBlack').src = config.logoBlackUrl || MY_LOGO_BLACK;
-                document.getElementById('logoWhite').src = config.logoWhiteUrl || MY_LOGO_WHITE;
-                document.getElementById('wheelLogo').src = config.logoWhiteUrl || config.logoColorUrl || MY_LOGO_COLOR;
+                // 增加了一层保障：确保获取到的配置链接不是空字符串才使用
+                document.getElementById('logoBlack').src = (config.logoBlackUrl && config.logoBlackUrl.trim() !== '') ? config.logoBlackUrl : MY_LOGO_BLACK;
+                document.getElementById('logoWhite').src = (config.logoWhiteUrl && config.logoWhiteUrl.trim() !== '') ? config.logoWhiteUrl : MY_LOGO_WHITE;
+                document.getElementById('wheelLogo').src = (config.logoWhiteUrl && config.logoWhiteUrl.trim() !== '') ? config.logoWhiteUrl : ((config.logoColorUrl && config.logoColorUrl.trim() !== '') ? config.logoColorUrl : MY_LOGO_COLOR);
 
                 document.title = config.title;
                 renderRules(config.rules);

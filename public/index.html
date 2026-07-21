@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 新增：强制关闭 Referrer 防盗链，彻底解决微信环境公用图床图片裂开问题 -->
+    <meta name="referrer" content="no-referrer">
     <title>NOEY 诺一家具 - 高端定制幸运礼遇</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
@@ -35,7 +37,6 @@
 <body class="min-h-screen flex flex-col">
     <!-- 浅色导航栏：保留角落 Logo -->
     <nav class="px-6 py-4 flex justify-between items-center sticky top-0 z-50 bg-[#F7F5F0]/90 backdrop-blur-md border-b border-black/5">
-        <!-- 移除了 onerror 代码 -->
         <img id="logoBlack" src="" alt="NOEY" class="h-5 object-contain">
         <div class="flex items-center gap-4 text-xs tracking-wider">
             <span class="text-gray-500 hidden md:inline">NOEY MEMBER /</span>
@@ -133,7 +134,6 @@
 
     <!-- 深色官方页脚：补充版权与商标声明 -->
     <footer class="bg-[#111111] text-white py-16 px-6 text-center border-t-4 border-[#8C6A4F]">
-        <!-- 移除了 onerror 代码 -->
         <img id="logoWhite" src="" alt="NOEY" class="h-6 object-contain mx-auto mb-8 opacity-90">
         <div class="text-[10px] tracking-[0.2em] text-gray-400 uppercase space-y-3 font-light leading-loose">
             <p>NOEY Furniture Manufacture</p>
@@ -165,7 +165,7 @@
         </div>
     </div>
 
-    <!-- 中奖弹窗 -->
+    <!-- 中奖与信息录入弹窗 -->
     <div id="resultModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-[#111]/90 backdrop-blur-md opacity-0 transition-opacity duration-500">
         <div class="bg-gradient-to-b from-[#2a0808] to-[#111] border border-[#D4AF37]/40 p-8 max-w-sm w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-500 rounded-xl relative max-h-[90vh] overflow-y-auto" id="resultModalContent">
             <!-- 闪光星星图标 -->
@@ -178,11 +178,10 @@
             </div>
             
             <h4 class="text-xs text-[#D4AF37] mb-4 text-center tracking-widest font-bold">请完善信息，专属顾问将为您兑现礼遇</h4>
-            <p class="text-[9px] text-gray-400 text-center mb-4 leading-relaxed">请务必正确填写，以便我们及时为您发放奖励。若放弃填写，视为自动放弃该奖品。</p>
+            <p class="text-[9px] text-gray-400 text-center mb-4 leading-relaxed">请务必正确填写，以便我们及时为您发放奖励。若放弃填写，视为自动放弃该奖品，且无法退回抽奖次数。</p>
             
             <!-- 信息登记表单 -->
             <div class="space-y-3 text-left">
-                <input type="hidden" id="claimPrizeName">
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[9px] text-gray-400 mb-1 tracking-widest uppercase">Name / 您的姓名</label>
@@ -255,18 +254,14 @@
                 document.getElementById('pageTitle').innerText = config.title;
                 document.getElementById('pageSubtitle').innerText = config.subtitle;
                 
-                // ==========================================
-                // 🎨 硬编码：绝对兜底的 3 款 Logo 链接
-                // ==========================================
+                // 智能分配 Logo (如果后台被清空了，将永久使用硬编码的链接)
                 const MY_LOGO_BLACK = 'https://i.hd-r.cn/10eebc24-8a58-463e-9433-0e7d54bada9c.png'; 
                 const MY_LOGO_WHITE = 'https://i.hd-r.cn/10e4b29a-4ea1-4f46-884c-ff4e913cd476.png'; 
                 const MY_LOGO_COLOR = 'https://i.hd-r.cn/0f8d5bee-a893-4a9d-acd6-d8a9c5b4357f.png'; 
 
-                // 智能分配 Logo (如果后台被清空了，将永久使用硬编码的链接)
-                // 增加了一层保障：确保获取到的配置链接不是空字符串才使用
-                document.getElementById('logoBlack').src = (config.logoBlackUrl && config.logoBlackUrl.trim() !== '') ? config.logoBlackUrl : MY_LOGO_BLACK;
-                document.getElementById('logoWhite').src = (config.logoWhiteUrl && config.logoWhiteUrl.trim() !== '') ? config.logoWhiteUrl : MY_LOGO_WHITE;
-                document.getElementById('wheelLogo').src = (config.logoWhiteUrl && config.logoWhiteUrl.trim() !== '') ? config.logoWhiteUrl : ((config.logoColorUrl && config.logoColorUrl.trim() !== '') ? config.logoColorUrl : MY_LOGO_COLOR);
+                document.getElementById('logoBlack').src = config.logoBlackUrl || MY_LOGO_BLACK;
+                document.getElementById('logoWhite').src = config.logoWhiteUrl || MY_LOGO_WHITE;
+                document.getElementById('wheelLogo').src = config.logoWhiteUrl || config.logoColorUrl || MY_LOGO_COLOR;
 
                 document.title = config.title;
                 renderRules(config.rules);
@@ -286,13 +281,14 @@
                 renderPrizesShowcase(prizes);
                 renderWheel(prizes);
 
-                // 4. 获取用户数据
+                // 4. 获取当前用户数据并进行防逃逸检测
                 await refreshUserData();
             } catch (e) {
                 console.error("加载失败", e);
             }
         }
 
+        // 防逃逸核心刷新逻辑 (每次操作后更新UI)
         async function refreshUserData() {
             const userRes = await fetch('/api/user', { headers });
             if (userRes.status === 404 || userRes.status === 403) return logout();
@@ -301,15 +297,14 @@
             document.getElementById('userPhone').innerText = user.phone.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2");
             updateUserUI(user);
             
-            // 如果用户存在未领取的奖品，重新弹出填写框
+            // 防逃跑机制：如果用户有暂存未处理的奖品(比如刷新了网页)，强制重新唤起弹窗
             if(user.pendingPrize) {
                 let displayName = user.pendingPrize;
                 if(displayName.includes('-')) displayName = displayName.split('-')[1].trim();
                 else if(displayName.includes('：')) displayName = displayName.split('：')[1].trim();
                 
                 document.getElementById('modalPrizeName').innerText = displayName;
-                document.getElementById('claimPrizeName').value = user.pendingPrize; 
-                
+                // 默认将客户的注册手机号填入联系电话表单
                 if(!document.getElementById('claimPhone').value) {
                     document.getElementById('claimPhone').value = user.phone;
                 }
@@ -317,7 +312,6 @@
             }
         }
 
-        // 引入精美的 SVG 矢量图作为规则图标
         const ruleIcon = `<svg class="w-8 h-8 mx-auto mb-4 text-[#8C6A4F] opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>`;
 
         function renderRules(rules) {
@@ -331,7 +325,6 @@
                         <div class="text-[12px] text-gray-500 tracking-widest uppercase mb-3">${rule.condition}</div>
                         <div class="text-2xl serif-font text-[#1A1A1A] mb-6 font-bold">${rule.value}</div>
                     </div>
-                    <!-- 优化后的话术：诱导性更强 -->
                     <button onclick="showPaymentModal()" class="w-full text-xs text-white tracking-widest bg-[#1A1A1A] py-3 px-4 rounded hover:bg-[#8C6A4F] transition-colors duration-300 font-medium">
                         再获 ${rule.reward} 专属机会
                     </button>
@@ -339,11 +332,10 @@
             `).join('');
         }
 
-        // 动态奖品图标分配逻辑
         function getPrizeIcon(name) {
             if(name.includes('升级') || name.includes('拉直')) return `<svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>`;
             if(name.includes('券') || name.includes('500')) return `<svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path></svg>`;
-            return `<svg class="w-6 h-6 text-[#D4AF37]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>`; // 家具/礼盒图标
+            return `<svg class="w-6 h-6 text-[#D4AF37]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>`;
         }
 
         function formatPrizeCard(fullName) {
@@ -379,7 +371,6 @@
         function renderWheel(prizeList) {
             const wheel = document.getElementById('wheel');
             const sliceAngle = 360 / prizeList.length;
-            // 采用高级赌场配色：勃艮第红 与 香槟金 交替
             const colors = ['#5C1615', '#E6D5B8']; 
             const textColors = ['#E6D5B8', '#5C1615'];
             
@@ -391,7 +382,6 @@
                 if(displayName.includes('-')) displayName = displayName.split('-')[1].trim();
                 else if(displayName.includes('：')) displayName = displayName.split('：')[1].trim();
 
-                // 核心修复：更精确的扇形文字定位与抗遮挡算法
                 const textRotate = rotate + sliceAngle / 2 - 90;
 
                 return `
@@ -428,10 +418,12 @@
 
             const res = await fetch('/api/draw', { method: 'POST', headers });
             const data = await res.json();
+            
+            // 新增防刷防逃逸处理
             if (data.error) { 
                 alert(data.error); 
                 if(data.hasPending) {
-                    refreshUserData(); // 如果有未领取的奖品，刷新唤起弹窗
+                    refreshUserData(); 
                 }
                 isDrawing = false; 
                 return; 
@@ -440,11 +432,9 @@
             const targetIndex = prizes.findIndex(p => p.name === data.prize.name);
             const sliceAngle = 360 / prizes.length;
             const targetDegree = 360 - (targetIndex * sliceAngle + sliceAngle / 2);
-            // 物理感加强：多转 8 圈 (2880度) 增加刺激感
             currentDegree += 2880 + (targetDegree - (currentDegree % 360)); 
 
             const wheel = document.getElementById('wheel');
-            // 调整贝塞尔曲线，前段加速更猛，后段阻尼更真实
             wheel.style.transition = 'transform 4.5s cubic-bezier(0.15, 0.9, 0.1, 1)';
             wheel.style.transform = `rotate(${currentDegree}deg)`;
 
@@ -453,11 +443,8 @@
                 if(displayName.includes('-')) displayName = displayName.split('-')[1].trim();
                 else if(displayName.includes('：')) displayName = displayName.split('：')[1].trim();
                 
-                // 设置弹窗内要显示的奖品
                 document.getElementById('modalPrizeName').innerText = displayName;
-                document.getElementById('claimPrizeName').value = data.prize.name; // 记录表单隐藏字段(完整名)
                 
-                // 默认将客户的注册手机号填入联系电话表单（后台获取脱敏前的真实手机号）
                 if(!document.getElementById('claimPhone').value) {
                     document.getElementById('claimPhone').value = data.user.phone;
                 }
@@ -468,20 +455,21 @@
             }, 4700);
         }
 
-        // 修改：增加放弃奖品逻辑
+        // 修改：增加放弃奖品的严格判定逻辑
         async function abandonPrize() {
-            const confirmed = confirm('【重要提示】\n若稍后再说，您本次抽中的奖品将会丢失，且抽奖次数无法退回。\n您确定要放弃本次奖品吗？');
+            const confirmed = confirm('【重要警告】\n若点击确认，您本次抽中的奖品将会立即作废丢失，且由于您已经消耗了抽奖机会，次数无法退回。\n\n您确定要放弃该奖品吗？');
             if(confirmed) {
                 try {
                     await fetch('/api/abandon', { method: 'POST', headers });
                     closeResultModal();
-                    await refreshUserData();
+                    await refreshUserData(); // 刷新获取最新状态
                 } catch(e) {
                     console.error("放弃操作失败", e);
                 }
             }
         }
 
+        // 修改：提交表单并真正获得奖品
         async function submitClaim() {
             const data = {
                 userName: document.getElementById('claimName').value,
@@ -493,7 +481,7 @@
             };
             
             if(!data.userName || !data.userPhone || !data.city) {
-                return alert('⚠️ 请完整填写您的姓名、电话和城市');
+                return alert('⚠️ 请完整填写您的姓名、电话和城市，以便我们为您派发奖品');
             }
             
             const btn = document.getElementById('claimSubmitBtn');
@@ -509,10 +497,11 @@
                 const resData = await res.json();
                 if(resData.error) throw new Error(resData.error);
                 
-                alert('登记成功！系统已录入，您的专属顾问将尽快与您联系。');
+                alert('登记成功！系统已为您保留礼遇，您的专属顾问将尽快与您联系。');
                 closeResultModal();
-                await refreshUserData(); // 刷新UI，显示新加入的奖励记录
+                await refreshUserData(); // 成功后刷新，展示最新的已获赠记录
                 
+                // 更新外层统计数字
                 const el = document.getElementById('statRewards');
                 if(el.innerText !== '-') el.innerText = parseInt(el.innerText) + 1;
                 

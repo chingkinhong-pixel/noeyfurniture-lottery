@@ -27,7 +27,16 @@ const userSchema = new mongoose.Schema({
     password: { type: String, default: "" },
     role: { type: String, default: "user" },
     chances: { type: Number, default: 1 },
-    rewards: [{ name: String, time: String }]
+    rewards: [{ name: String, time: String }],
+    // 新增字段：处理强制登记和信息暂存逻辑
+    pendingPrize: { type: String, default: "" }, // 暂存刚抽中但未领取的奖品
+    claimInfo: { 
+        userName: String, 
+        city: String,
+        stage: String,
+        layout: String,
+        budget: String
+    }
 });
 const User = mongoose.model('User', userSchema);
 
@@ -36,20 +45,6 @@ const prizeSchema = new mongoose.Schema({
     weight: { type: Number, required: true }
 });
 const Prize = mongoose.model('Prize', prizeSchema);
-
-// 新增：客户线索(中奖领取登记)模型
-const leadSchema = new mongoose.Schema({
-    userName: String,
-    userPhone: String,
-    city: String,
-    stage: String,
-    layout: String,
-    budget: String,
-    prizeName: String,
-    claimTime: String,
-    status: { type: String, default: "新客户" } // 新客户, 已联系, 已预约, 已成交, 无效
-});
-const Lead = mongoose.model('Lead', leadSchema);
 
 const configSchema = new mongoose.Schema({
     identifier: { type: String, default: "global", unique: true },
@@ -158,7 +153,7 @@ app.post('/api/login', async (req, res) => {
         } else {
             if (user && user.role === 'admin') return res.status(403).json({ error: '管理员请通过专属通道登录' });
             if (!user) {
-                user = await User.create({ phone, role: 'user', chances: 1, rewards: [] });
+                user = await User.create({ phone, role: 'user', chances: 1, rewards: [], pendingPrize: "" });
             }
             return res.json({ token: user.phone, role: user.role });
         }
@@ -176,7 +171,14 @@ app.post('/api/draw', async (req, res) => {
         const phone = req.headers.authorization;
         const user = await User.findOne({ phone: phone });
         
-        if (!user || user.chances <= 0) {
+        if (!user) return res.status(404).json({ error: '用户不存在' });
+        
+        // 如果用户有未处理的奖品，要求先处理
+        if(user.pendingPrize) {
+            return res.status(400).json({ error: '您有一个尚未填写的奖品，请先完善信息', hasPending: true });
+        }
+        
+        if (user.chances <= 0) {
             return res.status(400).json({ error: '没有抽奖次数了' });
         }
 
@@ -190,45 +192,50 @@ app.post('/api/draw', async (req, res) => {
             randomNum -= prize.weight;
         }
 
+        // 修改：扣除次数，但不立即写入 rewards 数组，而是写入 pendingPrize
         user.chances -= 1;
-        user.rewards.push({ name: wonPrize.name, time: new Date().toLocaleString() });
+        user.pendingPrize = wonPrize.name;
         await user.save(); 
 
         res.json({ prize: wonPrize, user: user });
     } catch (err) { res.status(500).json({ error: '抽奖失败' }); }
 });
 
-// 新增：前端提交领奖登记信息
+// 新增：领取奖品并提交信息
 app.post('/api/claim', async (req, res) => {
     try {
         const phone = req.headers.authorization;
-        if (!phone) return res.status(401).json({ error: '非法请求' });
+        const user = await User.findOne({ phone: phone });
         
-        const newLead = await Lead.create({
-            userName: req.body.userName,
-            userPhone: req.body.userPhone || phone,
-            city: req.body.city,
-            stage: req.body.stage,
-            layout: req.body.layout,
-            budget: req.body.budget,
-            prizeName: req.body.prizeName,
-            claimTime: new Date().toLocaleString(),
-            status: '新客户'
-        });
-        res.json({ success: true, lead: newLead });
+        if (!user) return res.status(404).json({ error: '用户不存在' });
+        if (!user.pendingPrize) return res.status(400).json({ error: '当前没有待领取的奖品' });
+
+        const { userName, city, stage, layout, budget } = req.body;
+
+        // 将 pendingPrize 移入 rewards 数组
+        user.rewards.push({ name: user.pendingPrize, time: new Date().toLocaleString() });
+        user.pendingPrize = ""; // 清空待领取状态
+        
+        // 保存用户提交的信息
+        user.claimInfo = { userName, city, stage, layout, budget };
+        
+        await user.save();
+        res.json({ success: true });
     } catch (err) { res.status(500).json({ error: '提交失败' }); }
 });
 
-// 新增：后台获取中奖客户线索列表 (倒序排列，新线索在前)
-app.get('/api/admin/leads', requireAdmin, async (req, res) => {
-    const leads = await Lead.find().sort({ _id: -1 });
-    res.json(leads);
-});
-
-// 新增：后台销售更新线索跟进状态
-app.post('/api/admin/leads/status', requireAdmin, async (req, res) => {
-    await Lead.findByIdAndUpdate(req.body.id, { status: req.body.status });
-    res.json({ success: true });
+// 新增：放弃奖品
+app.post('/api/abandon', async (req, res) => {
+    try {
+        const phone = req.headers.authorization;
+        const user = await User.findOne({ phone: phone });
+        
+        if (user && user.pendingPrize) {
+            user.pendingPrize = ""; // 清空待领取状态，等于放弃奖品，次数不退回
+            await user.save();
+        }
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: '操作失败' }); }
 });
 
 app.get('/api/admin/data', requireAdmin, async (req, res) => {
@@ -252,6 +259,24 @@ app.post('/api/admin/users', requireAdmin, async (req, res) => {
         }
     }
     res.json({ success: true });
+});
+
+// 新增：管理员清空用户奖品
+app.post('/api/admin/reset-rewards', requireAdmin, async (req, res) => {
+    try {
+        const { phone } = req.body;
+        const user = await User.findOne({ phone: phone, role: 'user' });
+        if(user) {
+            user.rewards = [];
+            user.pendingPrize = ""; // 一并清空可能卡住的暂存奖品
+            await user.save();
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ error: '未找到指定用户' });
+        }
+    } catch(err) {
+        res.status(500).json({ error: '重置失败' });
+    }
 });
 
 app.post('/api/admin/account', requireAdmin, async (req, res) => {

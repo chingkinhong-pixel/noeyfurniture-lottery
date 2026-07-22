@@ -3,122 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 新增：强制关闭 Referrer 防盗链，解决微信图片破损问题 -->
-    <meta name="referrer" content="no-referrer">
-    <title>NOEY 诺一家具 - 后台管理</title>
+    <title>NOEY 诺一家具 - 后台中心</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #FAFAFA; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1A1A1A; }
+        .nav-link { color: #999; padding-bottom: 12px; font-size: 14px; letter-spacing: 0.1em; transition: all 0.3s; border-bottom: 2px solid transparent; }
+        .nav-link:hover { color: #1A1A1A; }
+        .nav-link.active { color: #1A1A1A; font-weight: 600; border-bottom: 2px solid #1A1A1A; }
+        .premium-card { background: white; border: 1px solid #EBEBEB; border-radius: 4px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen text-gray-800 p-8">
-    <div class="max-w-6xl mx-auto">
-        <div class="flex justify-between items-center mb-8 border-b pb-4">
-            <h1 class="text-2xl font-bold tracking-wider">NOEY 系统管理控制台</h1>
-            <button onclick="logout()" class="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded hover:bg-red-100 transition">退出登录</button>
-        </div>
-
-        <!-- 管理员安全设置 (新增) -->
-        <div class="bg-white p-6 rounded-lg shadow-sm mb-8 border-l-4 border-red-500">
-            <h2 class="text-lg font-bold mb-4">管理员安全设置 (登录账号与密码)</h2>
-            <div class="flex gap-4 items-end mb-4">
-                <div class="flex-1">
-                    <label class="block text-xs font-bold text-gray-500 mb-1 tracking-widest">登录手机号</label>
-                    <input type="text" id="adminPhoneInput" class="w-full border border-gray-200 p-2 text-sm rounded bg-gray-50 focus:bg-white focus:outline-none focus:border-black">
-                </div>
-                <div class="flex-1">
-                    <label class="block text-xs font-bold text-gray-500 mb-1 tracking-widest">新登录密码</label>
-                    <input type="text" id="adminPasswordInput" class="w-full border border-gray-200 p-2 text-sm rounded bg-gray-50 focus:bg-white focus:outline-none focus:border-black" placeholder="若不修改请留空">
-                </div>
+<body class="min-h-screen">
+    
+    <!-- NOEY 高级独立导航条 -->
+    <header class="bg-white border-b border-[#EBEBEB] sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 pt-6 flex justify-between items-end">
+            <div>
+                <h1 class="text-xl font-bold tracking-widest mb-6">NOEY MANAGEMENT</h1>
+                <nav class="flex space-x-8">
+                    <a href="admin.html" class="nav-link active">基础设置与资产</a>
+                    <a href="customer-management.html" class="nav-link">客户跟进 CRM</a>
+                    <a href="reward-records.html" class="nav-link">中奖流水库</a>
+                </nav>
             </div>
-            <div class="text-right">
-                <button onclick="saveAdminAccount()" class="bg-red-600 text-white px-6 py-2 rounded text-sm tracking-widest hover:bg-red-700 transition shadow-lg">更新管理员账号</button>
-            </div>
+            <button onclick="logout()" class="mb-6 text-xs text-gray-400 hover:text-black tracking-widest uppercase transition">退出系统 / Logout</button>
         </div>
+    </header>
 
+    <div class="max-w-7xl mx-auto px-6 py-8">
+        
         <!-- 全局页面与品牌设置 -->
-        <div class="bg-white p-6 rounded-lg shadow-sm mb-8 border-t-4 border-[#1A1A1A]">
-            <h2 class="text-lg font-bold mb-6">品牌资产与营销配置 (前台实时生效)</h2>
+        <div class="premium-card mb-8">
+            <h2 class="text-sm font-bold mb-6 tracking-widest text-gray-800 uppercase">品牌营销与权限配置</h2>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1 tracking-widest">活动大标题</label>
-                    <input type="text" id="configTitle" class="w-full border border-gray-200 p-2 text-sm rounded bg-gray-50 focus:bg-white focus:outline-none focus:border-black">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1 tracking-widest">活动副标题</label>
-                    <input type="text" id="configSubtitle" class="w-full border border-gray-200 p-2 text-sm rounded bg-gray-50 focus:bg-white focus:outline-none focus:border-black">
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-bold text-gray-500 mb-1 tracking-widest">首页品牌理念语句</label>
-                    <input type="text" id="configPhilosophy" class="w-full border border-gray-200 p-2 text-sm rounded bg-gray-50 focus:bg-white focus:outline-none focus:border-black" placeholder="例如：以设计回应生活，以品质兑现承诺">
-                </div>
-            </div>
-
-            <!-- Logo 管理模块 -->
-            <div class="bg-gray-50 p-4 rounded border border-gray-100 mb-6">
-                <h3 class="text-sm font-bold mb-4">Logo 资源管理 (请填入图片的网络链接 URL)</h3>
-                <p class="text-xs text-gray-400 mb-4">提示：为了防止云服务器重启丢失图片，请将图片上传到您的服务器或免费图床，并将生成的 http 链接填入下方。</p>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs text-gray-600 mb-1">首页展示区彩色 Logo</label>
-                        <input type="text" id="logoColorUrl" class="w-full border border-gray-200 p-2 text-xs rounded" placeholder="http://...">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 mb-1 tracking-widest uppercase">大标题</label>
+                            <input type="text" id="configTitle" class="w-full border-b border-gray-200 py-2 text-sm bg-transparent focus:outline-none focus:border-black transition">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-400 mb-1 tracking-widest uppercase">副标题</label>
+                            <input type="text" id="configSubtitle" class="w-full border-b border-gray-200 py-2 text-sm bg-transparent focus:outline-none focus:border-black transition">
+                        </div>
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-600 mb-1">浅色背景黑色 Logo</label>
-                        <input type="text" id="logoBlackUrl" class="w-full border border-gray-200 p-2 text-xs rounded" placeholder="http://...">
+                        <label class="block text-[10px] font-bold text-gray-400 mb-1 tracking-widest uppercase">收款话术</label>
+                        <input type="text" id="configPaymentCopy" class="w-full border-b border-gray-200 py-2 text-sm bg-transparent focus:outline-none focus:border-black transition">
                     </div>
-                    <div>
-                        <label class="block text-xs text-gray-600 mb-1">深色背景白色 Logo</label>
-                        <input type="text" id="logoWhiteUrl" class="w-full border border-gray-200 p-2 text-xs rounded" placeholder="http://...">
+                    <div class="grid grid-cols-3 gap-4 bg-gray-50 p-4 rounded mt-4">
+                        <div class="col-span-3"><label class="text-[10px] text-gray-500 uppercase tracking-widest">Logo 素材链接</label></div>
+                        <input type="text" id="logoColorUrl" class="border border-gray-200 p-2 text-xs rounded" placeholder="彩色 Logo">
+                        <input type="text" id="logoBlackUrl" class="border border-gray-200 p-2 text-xs rounded" placeholder="黑色 Logo">
+                        <input type="text" id="logoWhiteUrl" class="border border-gray-200 p-2 text-xs rounded" placeholder="白色 Logo">
+                        <input type="text" id="configQrCodeUrl" class="col-span-3 border border-gray-200 p-2 text-xs rounded" placeholder="收款码图片链接">
+                    </div>
+                    <div class="mt-6 text-right">
+                        <button onclick="saveConfig()" class="bg-[#1A1A1A] text-white px-6 py-2 rounded text-xs tracking-widest hover:bg-[#8C6A4F] transition shadow">保存品牌配置</button>
                     </div>
                 </div>
-            </div>
 
-            <!-- 收款与规则配置 -->
-            <div class="flex gap-4 items-end mb-6 bg-gray-50 p-4 rounded border border-gray-100">
-                <div class="flex-2 w-2/3">
-                    <label class="block text-xs font-bold text-gray-500 mb-1 tracking-widest">收款弹窗话术</label>
-                    <input type="text" id="configPaymentCopy" class="w-full border border-gray-200 p-2 text-sm rounded" placeholder="例如：扫码支付后联系设计师录入次数">
+                <!-- 账号安全 -->
+                <div class="border-l border-gray-100 pl-8">
+                    <h3 class="text-xs font-bold text-gray-800 tracking-widest uppercase mb-4">系统安全</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">管理员账号</label>
+                            <input type="text" id="adminPhoneInput" class="w-full border border-gray-200 p-2 text-sm rounded bg-gray-50">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-400 mb-1 tracking-widest uppercase">修改密码</label>
+                            <input type="text" id="adminPasswordInput" class="w-full border border-gray-200 p-2 text-sm rounded bg-gray-50" placeholder="留空则不修改">
+                        </div>
+                        <button onclick="saveAdminAccount()" class="w-full border border-[#1A1A1A] text-[#1A1A1A] px-4 py-2 rounded text-xs tracking-widest hover:bg-[#1A1A1A] hover:text-white transition">更新凭证</button>
+                    </div>
                 </div>
-                <div class="flex-1 w-1/3">
-                    <label class="block text-xs font-bold text-gray-500 mb-1 tracking-widest">收款码图片链接 (URL)</label>
-                    <input type="text" id="configQrCodeUrl" class="w-full border border-gray-200 p-2 text-sm rounded">
-                </div>
-            </div>
-            
-            <div class="mb-6">
-                <div class="flex justify-between items-center mb-2">
-                    <label class="block text-xs font-bold text-gray-500 tracking-widest">获取抽奖机会门槛配置</label>
-                    <button onclick="addRule()" class="text-xs bg-white border border-gray-300 px-3 py-1 rounded hover:bg-gray-100 transition">添加一条门槛规则</button>
-                </div>
-                <div id="rulesList" class="space-y-2"></div>
-            </div>
-
-            <div class="text-right">
-                <button onclick="saveConfig()" class="bg-[#1A1A1A] text-white px-8 py-3 rounded text-sm tracking-widest hover:bg-black transition shadow-lg">保存所有品牌营销配置</button>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- 奖品管理 -->
-            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                <div class="flex justify-between items-center mb-6">
+            <!-- 简化版：用户库管理 -->
+            <div class="premium-card flex flex-col h-[600px]">
+                <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
                     <div>
-                        <h2 class="text-lg font-bold">高级奖品陈列配置</h2>
-                        <p class="text-xs text-gray-400 mt-1">建议格式：英文系列名 - 中文奖品名 (例如: DESIGN - 床头柜)</p>
+                        <h2 class="text-sm font-bold tracking-widest uppercase">用户资产库 (简化)</h2>
+                        <p class="text-[10px] text-gray-400 mt-1">仅用于调整抽奖次数，客户详情请前往客户CRM</p>
                     </div>
-                    <button onclick="addPrize()" class="bg-gray-100 text-gray-700 text-xs px-3 py-1 rounded hover:bg-gray-200">新增奖品</button>
                 </div>
-                <div id="prizesList" class="space-y-3"></div>
-                <div class="mt-6 text-right">
-                    <button onclick="savePrizes()" class="bg-[#8C6A4F] text-white px-6 py-2 rounded text-sm hover:bg-[#72553f] transition">同步奖品池</button>
+                <div id="usersList" class="flex-grow overflow-y-auto space-y-2 pr-2"></div>
+                <div class="mt-6 pt-4 border-t border-gray-100 text-right">
+                    <button onclick="saveUsers()" class="bg-[#1A1A1A] text-white px-6 py-2 rounded text-xs tracking-widest hover:bg-[#8C6A4F] transition">同步抽奖次数</button>
                 </div>
             </div>
 
-            <!-- 用户管理 -->
-            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                <h2 class="text-lg font-bold mb-6">客户资产池</h2>
-                <div id="usersList" class="space-y-3 max-h-[500px] overflow-y-auto pr-2"></div>
-                <div class="mt-6 text-right">
-                    <button onclick="saveUsers()" class="bg-[#8C6A4F] text-white px-6 py-2 rounded text-sm hover:bg-[#72553f] transition">保存客户次数</button>
+            <!-- 奖品陈列管理 -->
+            <div class="premium-card flex flex-col h-[600px]">
+                <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
+                    <h2 class="text-sm font-bold tracking-widest uppercase">高级奖品陈列配置</h2>
+                    <button onclick="addPrize()" class="border border-gray-200 text-gray-600 text-xs px-3 py-1 rounded hover:bg-gray-50">新增奖品</button>
+                </div>
+                <div id="prizesList" class="flex-grow overflow-y-auto space-y-3 pr-2"></div>
+                <div class="mt-6 pt-4 border-t border-gray-100 text-right">
+                    <button onclick="savePrizes()" class="bg-[#1A1A1A] text-white px-6 py-2 rounded text-xs tracking-widest hover:bg-[#8C6A4F] transition">同步奖品池</button>
                 </div>
             </div>
         </div>
@@ -129,7 +116,6 @@
         if (!token) window.location.href = '/login.html';
         const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
         let currentData = { prizes: [], users: [] };
-        let currentRules = [];
 
         async function init() {
             // 加载配置
@@ -137,159 +123,84 @@
             const config = await cfgRes.json();
             document.getElementById('configTitle').value = config.title || '';
             document.getElementById('configSubtitle').value = config.subtitle || '';
-            document.getElementById('configPhilosophy').value = config.brandPhilosophy || '';
             document.getElementById('configPaymentCopy').value = config.paymentCopy || '';
             document.getElementById('configQrCodeUrl').value = config.qrCodeUrl || '';
-            
-            // 绑定 Logo 链接到输入框
             document.getElementById('logoColorUrl').value = config.logoColorUrl || '';
             document.getElementById('logoBlackUrl').value = config.logoBlackUrl || '';
             document.getElementById('logoWhiteUrl').value = config.logoWhiteUrl || '';
 
-            currentRules = config.rules || [];
-            renderRules();
-
-            // 加载数据
-            const res = await fetch('/api/admin/data', { headers });
-            if (res.status === 403) {
-                alert('越权访问，即将退出');
-                return logout();
-            }
+            // 加载用户和奖品 (使用简化版的 API)
+            const res = await fetch('/api/admin/users', { headers });
+            if (res.status === 403) return logout();
             currentData = await res.json();
             
-            // 初始化管理员账号密码框
-            if(currentData.admin) {
-                document.getElementById('adminPhoneInput').value = currentData.admin.phone;
-            }
+            if(currentData.admin) document.getElementById('adminPhoneInput').value = currentData.admin.phone;
 
             renderPrizes();
             renderUsers();
         }
 
-        function renderRules() {
-            document.getElementById('rulesList').innerHTML = currentRules.map((r, i) => `
-                <div class="flex gap-2 items-center bg-gray-50 p-3 rounded border border-gray-100">
-                    <input type="text" value="${r.condition}" onchange="currentRules[${i}].condition=this.value" class="flex-1 border border-gray-200 p-2 text-sm rounded" placeholder="例如：设计方案定金">
-                    <input type="text" value="${r.value}" onchange="currentRules[${i}].value=this.value" class="flex-1 border border-gray-200 p-2 text-sm rounded" placeholder="例如：3000元">
-                    <input type="text" value="${r.reward}" onchange="currentRules[${i}].reward=this.value" class="w-24 border border-gray-200 p-2 text-sm rounded" placeholder="例如：1次">
-                    <button onclick="currentRules.splice(${i}, 1); renderRules()" class="text-red-400 hover:text-red-600 text-xs px-2">删除</button>
-                </div>
-            `).join('');
-        }
-        function addRule() { currentRules.push({ condition: "新门槛要求", value: "0元", reward: "1次" }); renderRules(); }
-
         async function saveConfig() {
             const payload = {
-                title: document.getElementById('configTitle').value,
-                subtitle: document.getElementById('configSubtitle').value,
-                brandPhilosophy: document.getElementById('configPhilosophy').value,
-                paymentCopy: document.getElementById('configPaymentCopy').value,
-                qrCodeUrl: document.getElementById('configQrCodeUrl').value,
-                logoColorUrl: document.getElementById('logoColorUrl').value,
-                logoBlackUrl: document.getElementById('logoBlackUrl').value,
-                logoWhiteUrl: document.getElementById('logoWhiteUrl').value,
-                rules: currentRules
+                title: document.getElementById('configTitle').value, subtitle: document.getElementById('configSubtitle').value,
+                paymentCopy: document.getElementById('configPaymentCopy').value, qrCodeUrl: document.getElementById('configQrCodeUrl').value,
+                logoColorUrl: document.getElementById('logoColorUrl').value, logoBlackUrl: document.getElementById('logoBlackUrl').value, logoWhiteUrl: document.getElementById('logoWhiteUrl').value
             };
-            
             await fetch('/api/config', { method: 'POST', headers, body: JSON.stringify(payload) });
-            alert('品牌资产与营销配置已保存，前台将立即同步更新。');
+            alert('品牌配置已保存');
         }
 
         function renderPrizes() {
             document.getElementById('prizesList').innerHTML = currentData.prizes.map((p, i) => `
-                <div class="flex gap-3 items-center bg-gray-50 p-3 rounded border border-gray-100">
-                    <input type="text" value="${p.name}" onchange="currentData.prizes[${i}].name=this.value" class="flex-1 border border-gray-200 p-2 text-sm rounded focus:border-black focus:outline-none" placeholder="英文分类 - 中文奖品">
+                <div class="flex gap-3 items-center bg-[#FDFDFD] p-3 border border-gray-100 rounded">
+                    <input type="text" value="${p.name}" onchange="currentData.prizes[${i}].name=this.value" class="flex-1 border-b border-gray-200 p-1 text-sm bg-transparent focus:border-black focus:outline-none" placeholder="奖品名称">
                     <div class="flex items-center gap-2">
-                        <span class="text-xs text-gray-400">权重</span>
-                        <input type="number" value="${p.weight}" onchange="currentData.prizes[${i}].weight=Number(this.value)" class="w-16 border border-gray-200 p-2 text-sm rounded text-center">
+                        <span class="text-[10px] text-gray-400 tracking-widest">权重</span>
+                        <input type="number" value="${p.weight}" onchange="currentData.prizes[${i}].weight=Number(this.value)" class="w-16 border-b border-gray-200 p-1 text-sm bg-transparent text-center focus:border-black focus:outline-none">
                     </div>
-                    <button onclick="currentData.prizes.splice(${i}, 1); renderPrizes()" class="text-red-400 hover:text-red-600 text-xs px-2">删除</button>
+                    <button onclick="currentData.prizes.splice(${i}, 1); renderPrizes()" class="text-gray-400 hover:text-red-500 text-xs px-2 transition">删除</button>
                 </div>
             `).join('');
         }
-
         function addPrize() { currentData.prizes.push({ name: "NEW GIFT - 新奖品", weight: 10 }); renderPrizes(); }
-        
-        async function savePrizes() {
-            await fetch('/api/admin/prizes', { method: 'POST', headers, body: JSON.stringify(currentData.prizes) });
-            alert('奖品陈列库已同步至前台！');
-        }
+        async function savePrizes() { await fetch('/api/admin/prizes', { method: 'POST', headers, body: JSON.stringify(currentData.prizes) }); alert('奖品库已同步'); }
 
         function renderUsers() {
-            // 在渲染用户列表时，加入客户登记信息的展示，以及清空奖品按钮
             document.getElementById('usersList').innerHTML = currentData.users.map((u, i) => `
-                <div class="flex flex-col gap-2 bg-white p-4 rounded border border-gray-100 shadow-sm relative">
-                    <div class="flex justify-between items-center">
-                        <div class="font-bold text-sm tracking-wider">
-                            ${u.phone}
-                            ${u.claimInfo && u.claimInfo.userName ? `<span class="text-xs font-normal text-gray-500 ml-2">(${u.claimInfo.userName})</span>` : ''}
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs text-gray-500">操作剩余次数:</span>
-                            <input type="number" value="${u.chances}" onchange="currentData.users[${i}].chances=Number(this.value)" class="w-16 border border-gray-200 p-1 text-sm rounded text-center focus:border-[#8C6A4F] focus:outline-none">
-                        </div>
+                <div class="flex items-center justify-between p-3 border border-gray-100 rounded bg-white hover:border-gray-300 transition">
+                    <div>
+                        <div class="font-medium text-sm tracking-widest">${u.phone}</div>
+                        <div class="text-[10px] text-gray-400 tracking-widest mt-1">注册: ${u.registerTime || '未知'}</div>
                     </div>
-                    <div class="flex justify-between items-start text-[10px] text-gray-400 mt-1 leading-relaxed border-t pt-2 border-gray-50">
-                        <div class="flex-1 pr-2">
-                            ${u.rewards.length ? '已送出: ' + u.rewards.map(r=>r.name.includes('-') ? r.name.split('-')[1].trim() : r.name).join('，') : '暂未获得礼遇'}
-                            ${u.claimInfo && u.claimInfo.city ? `<br>客户登记信息: ${u.claimInfo.userPhone || ''} | ${u.claimInfo.city} | ${u.claimInfo.stage} | ${u.claimInfo.layout} | ${u.claimInfo.budget}` : ''}
+                    <div class="flex gap-4 items-center">
+                        <div class="flex flex-col items-center">
+                            <span class="text-[10px] text-gray-400 tracking-widest mb-1">机会</span>
+                            <input type="number" value="${u.chances}" onchange="currentData.users[${i}].chances=Number(this.value)" class="w-12 border-b border-gray-300 text-sm text-center focus:outline-none bg-transparent">
                         </div>
-                        <button onclick="resetUserRewards('${u.phone}')" class="text-red-400 hover:text-red-600 border border-red-200 px-2 py-1 rounded bg-red-50 transition-colors whitespace-nowrap">
-                            清空奖品
-                        </button>
+                        <button onclick="resetUserRewards('${u.phone}')" class="text-[10px] text-red-400 hover:text-red-600 border border-red-100 px-2 py-1 rounded tracking-widest">重置奖品</button>
                     </div>
                 </div>
             `).join('');
         }
 
-        async function saveUsers() {
-            await fetch('/api/admin/users', { method: 'POST', headers, body: JSON.stringify(currentData.users) });
-            alert('客户资产池状态更新成功！');
-        }
+        async function saveUsers() { await fetch('/api/admin/users', { method: 'POST', headers, body: JSON.stringify(currentData.users) }); alert('抽奖次数更新成功'); }
 
-        // 新增：清空用户奖品方法
         async function resetUserRewards(phone) {
-            if(!confirm(`确定要清空用户 ${phone} 的所有中奖记录吗？此操作不可恢复。`)) return;
-            
-            try {
-                const res = await fetch('/api/admin/reset-rewards', {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({ phone })
-                });
-                const data = await res.json();
-                if(data.success) {
-                    alert('清空成功');
-                    // 重新加载数据并渲染，确保前端列表刷新
-                    const resData = await fetch('/api/admin/data', { headers });
-                    currentData = await resData.json();
-                    renderUsers();
-                } else {
-                    alert(data.error || '清空失败');
-                }
-            } catch (err) {
-                alert('清空操作失败');
-            }
+            if(!confirm(`确定要清空用户 ${phone} 的所有中奖记录吗？该操作不可逆，且同步删除独立中奖流水。`)) return;
+            await fetch('/api/admin/reset-rewards', { method: 'POST', headers, body: JSON.stringify({ phone }) });
+            alert('已重置');
         }
 
         async function saveAdminAccount() {
             const phone = document.getElementById('adminPhoneInput').value;
             const password = document.getElementById('adminPasswordInput').value;
-            if(!phone) return alert('手机号不能为空');
-            
-            await fetch('/api/admin/account', {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({ phone, password })
-            });
-            alert('管理员账号更新成功！请记住您的新账号密码。');
-            if(phone !== localStorage.getItem('token')) {
-                localStorage.setItem('token', phone); // 若更改了手机号，同步更新凭证防掉线
-            }
+            if(!phone) return;
+            await fetch('/api/admin/account', { method: 'POST', headers, body: JSON.stringify({ phone, password }) });
+            alert('系统安全凭证已更新');
+            if(phone !== localStorage.getItem('token')) localStorage.setItem('token', phone);
         }
 
         function logout() { localStorage.removeItem('token'); window.location.href = '/login.html'; }
-        
         init();
     </script>
 </body>

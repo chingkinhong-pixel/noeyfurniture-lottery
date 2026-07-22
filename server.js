@@ -28,11 +28,9 @@ const userSchema = new mongoose.Schema({
     role: { type: String, default: "user" },
     chances: { type: Number, default: 1 },
     rewards: [{ name: String, time: String }],
-    // 新增字段：处理强制登记和信息暂存逻辑
-    pendingPrize: { type: String, default: "" }, // 暂存刚抽中但未领取的奖品
+    pendingPrize: { type: String, default: "" }, 
     claimInfo: { 
         userName: String, 
-        userPhone: String,
         city: String,
         stage: String,
         layout: String,
@@ -93,9 +91,10 @@ async function initData() {
                     { condition: "整屋定制", value: "50000元以上", reward: "8次" }
                 ],
                 brandPhilosophy: "以设计回应生活，以品质兑现承诺",
-                logoColorUrl: "https://i.hd-r.cn/0f8d5bee-a893-4a9d-acd6-d8a9c5b4357f.png",
-                logoBlackUrl: "https://i.hd-r.cn/10eebc24-8a58-463e-9433-0e7d54bada9c.png",
-                logoWhiteUrl: "https://i.hd-r.cn/10e4b29a-4ea1-4f46-884c-ff4e913cd476.png"
+                // 数据库出厂默认配置：已更新为最新防盗链 CDN 链接
+                logoColorUrl: "https://cdn.phototourl.com/free/2026-07-22-3304ec9f-26ef-4847-b0b1-f9287f713966.png",
+                logoBlackUrl: "https://cdn.phototourl.com/free/2026-07-22-9af23acf-27a4-46c1-b357-9c86c6911389.png",
+                logoWhiteUrl: "https://cdn.phototourl.com/free/2026-07-22-2a300550-48b9-41fb-acd5-778e3e3af16e.png"
             });
             console.log("初始化: 全局配置已创建");
         }
@@ -171,9 +170,8 @@ app.post('/api/draw', async (req, res) => {
         
         if (!user) return res.status(404).json({ error: '用户不存在' });
         
-        // 如果用户有未处理的奖品，要求先处理
         if(user.pendingPrize) {
-            return res.status(400).json({ error: '您有一个尚未领取的奖品，请先完善信息', hasPending: true });
+            return res.status(400).json({ error: '您有一个尚未填写的奖品，请先完善信息', hasPending: true });
         }
         
         if (user.chances <= 0) {
@@ -190,7 +188,6 @@ app.post('/api/draw', async (req, res) => {
             randomNum -= prize.weight;
         }
 
-        // 修改核心：扣除次数，但不立即写入 rewards 数组，而是写入 pendingPrize 暂存
         user.chances -= 1;
         user.pendingPrize = wonPrize.name;
         await user.save(); 
@@ -199,7 +196,6 @@ app.post('/api/draw', async (req, res) => {
     } catch (err) { res.status(500).json({ error: '抽奖失败' }); }
 });
 
-// 新增：领取奖品并提交信息
 app.post('/api/claim', async (req, res) => {
     try {
         const phone = req.headers.authorization;
@@ -208,28 +204,25 @@ app.post('/api/claim', async (req, res) => {
         if (!user) return res.status(404).json({ error: '用户不存在' });
         if (!user.pendingPrize) return res.status(400).json({ error: '当前没有待领取的奖品' });
 
-        const { userName, userPhone, city, stage, layout, budget } = req.body;
+        const { userName, city, stage, layout, budget } = req.body;
 
-        // 将 pendingPrize 移入真正的 rewards 数组，完成发奖
         user.rewards.push({ name: user.pendingPrize, time: new Date().toLocaleString() });
-        user.pendingPrize = ""; // 清空待领取状态
+        user.pendingPrize = ""; 
         
-        // 保存用户提交的信息
-        user.claimInfo = { userName, userPhone, city, stage, layout, budget };
+        user.claimInfo = { userName, city, stage, layout, budget };
         
         await user.save();
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: '提交失败' }); }
 });
 
-// 新增：放弃奖品
 app.post('/api/abandon', async (req, res) => {
     try {
         const phone = req.headers.authorization;
         const user = await User.findOne({ phone: phone });
         
         if (user && user.pendingPrize) {
-            user.pendingPrize = ""; // 清空待领取状态，等于放弃奖品，次数之前已扣除不退回
+            user.pendingPrize = ""; 
             await user.save();
         }
         res.json({ success: true });
@@ -259,14 +252,13 @@ app.post('/api/admin/users', requireAdmin, async (req, res) => {
     res.json({ success: true });
 });
 
-// 新增：管理员清空指定用户的所有奖品 (防止重复领取)
 app.post('/api/admin/reset-rewards', requireAdmin, async (req, res) => {
     try {
         const { phone } = req.body;
         const user = await User.findOne({ phone: phone, role: 'user' });
         if(user) {
             user.rewards = [];
-            user.pendingPrize = ""; // 一并清空可能卡住的暂存奖品
+            user.pendingPrize = ""; 
             await user.save();
             res.json({ success: true });
         } else {

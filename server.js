@@ -22,22 +22,44 @@ mongoose.connect(MONGODB_URI)
 // ==========================================
 // 2. 定义数据模型 (Schema)
 // ==========================================
+// [保持不变] 核心用户表 (兼容前台)
 const userSchema = new mongoose.Schema({
     phone: { type: String, required: true, unique: true },
     password: { type: String, default: "" },
     role: { type: String, default: "user" },
     chances: { type: Number, default: 1 },
+    registerTime: { type: String, default: () => new Date().toLocaleString() },
     rewards: [{ name: String, time: String }],
     pendingPrize: { type: String, default: "" }, 
-    claimInfo: { 
-        userName: String, 
-        city: String,
-        stage: String,
-        layout: String,
-        budget: String
-    }
+    claimInfo: { userName: String, city: String, stage: String, layout: String, budget: String }
 });
 const User = mongoose.model('User', userSchema);
+
+// [新增] 独立的客户跟进表
+const customerSchema = new mongoose.Schema({
+    phone: { type: String, required: true, unique: true },
+    name: { type: String, default: "-" },
+    registerTime: { type: String, default: () => new Date().toLocaleString() },
+    source: { type: String, default: "抽奖活动" },
+    stage: { type: String, default: "初步了解" },
+    budget: { type: String, default: "未确定" },
+    layout: { type: String, default: "未确定" },
+    needType: { type: String, default: "未确定" }, // 需求类型
+    followUpStatus: { type: String, default: "新客户" }, // 新客户, 待联系, 已联系, 已预约设计, 已成交, 暂无需求
+    remark: { type: String, default: "" }
+});
+const Customer = mongoose.model('Customer', customerSchema);
+
+// [新增] 独立的中奖记录表
+const rewardRecordSchema = new mongoose.Schema({
+    phone: { type: String, required: true },
+    userName: { type: String, default: "-" },
+    prizeName: { type: String, required: true },
+    prizeType: { type: String, default: "常规奖品" },
+    winTime: { type: String, required: true },
+    claimStatus: { type: String, default: "未领取" } // 未领取, 未联系, 已通知, 已领取, 已完成
+});
+const RewardRecord = mongoose.model('RewardRecord', rewardRecordSchema);
 
 const prizeSchema = new mongoose.Schema({
     name: { type: String, required: true },
@@ -47,20 +69,12 @@ const Prize = mongoose.model('Prize', prizeSchema);
 
 const configSchema = new mongoose.Schema({
     identifier: { type: String, default: "global", unique: true },
-    title: String,
-    subtitle: String,
-    paymentCopy: String,
-    qrCodeUrl: String,
-    rules: Array,
-    brandPhilosophy: String,
-    logoColorUrl: String,
-    logoBlackUrl: String,
-    logoWhiteUrl: String
+    title: String, subtitle: String, paymentCopy: String, qrCodeUrl: String, rules: Array, brandPhilosophy: String, logoColorUrl: String, logoBlackUrl: String, logoWhiteUrl: String
 });
 const Config = mongoose.model('Config', configSchema);
 
 // ==========================================
-// 3. 自动初始化数据 (如果数据库为空)
+// 3. 自动初始化数据
 // ==========================================
 async function initData() {
     try {
@@ -70,33 +84,17 @@ async function initData() {
         }
         if (await Prize.countDocuments() === 0) {
             await Prize.insertMany([
-                { name: "NOEY DESIGN GIFT - 设计师床头柜", weight: 2 }, 
-                { name: "NOEY COLLECTION - 极简边几", weight: 8 },
-                { name: "CUSTOM UPGRADE - 拉直器2套", weight: 30 }, 
-                { name: "HOME BONUS - 定制优惠券500元", weight: 30 }, 
-                { name: "HOME BONUS - 定制优惠券1000元", weight: 30 }
+                { name: "NOEY DESIGN GIFT - 设计师床头柜", weight: 2 }, { name: "NOEY COLLECTION - 极简边几", weight: 8 },
+                { name: "CUSTOM UPGRADE - 拉直器2套", weight: 30 }, { name: "HOME BONUS - 定制优惠券500元", weight: 30 }, { name: "HOME BONUS - 定制优惠券1000元", weight: 30 }
             ]);
-            console.log("初始化: 默认奖品池已创建");
         }
         if (await Config.countDocuments() === 0) {
             await Config.create({ 
-                identifier: "global",
-                title: "NOEY 幸运礼遇", 
-                subtitle: "为每一位选择诺一家具的客户，准备专属定制礼物。",
-                paymentCopy: "尊享专属设计方案，支付定金即刻解锁至臻礼遇。请扫码支付后联系您的专属设计师为您录入抽奖次数。",
-                qrCodeUrl: "https://cdn.phototourl.com/free/2026-07-18-98c9e787-a88e-4b7d-969f-3cb31603a68c.png",
-                rules: [
-                    { condition: "设计方案定金", value: "3000元", reward: "1次" },
-                    { condition: "家具订单", value: "20000元", reward: "3次" },
-                    { condition: "整屋定制", value: "50000元以上", reward: "8次" }
-                ],
-                brandPhilosophy: "以设计回应生活，以品质兑现承诺",
-                // 数据库出厂默认配置：已更新为最新防盗链 CDN 链接
-                logoColorUrl: "https://cdn.phototourl.com/free/2026-07-22-3304ec9f-26ef-4847-b0b1-f9287f713966.png",
-                logoBlackUrl: "https://cdn.phototourl.com/free/2026-07-22-9af23acf-27a4-46c1-b357-9c86c6911389.png",
-                logoWhiteUrl: "https://cdn.phototourl.com/free/2026-07-22-2a300550-48b9-41fb-acd5-778e3e3af16e.png"
+                identifier: "global", title: "NOEY 幸运礼遇", subtitle: "为每一位选择诺一家具的客户，准备专属定制礼物。",
+                paymentCopy: "尊享专属设计方案，支付定金即刻解锁至臻礼遇。请扫码支付后联系您的专属设计师为您录入抽奖次数。", qrCodeUrl: "https://cdn.phototourl.com/free/2026-07-18-98c9e787-a88e-4b7d-969f-3cb31603a68c.png",
+                rules: [{ condition: "设计方案定金", value: "3000元", reward: "1次" }, { condition: "家具订单", value: "20000元", reward: "3次" }, { condition: "整屋定制", value: "50000元以上", reward: "8次" }],
+                brandPhilosophy: "以设计回应生活，以品质兑现承诺", logoColorUrl: "https://cdn.phototourl.com/free/2026-07-22-3304ec9f-26ef-4847-b0b1-f9287f713966.png", logoBlackUrl: "https://cdn.phototourl.com/free/2026-07-22-9af23acf-27a4-46c1-b357-9c86c6911389.png", logoWhiteUrl: "https://cdn.phototourl.com/free/2026-07-22-2a300550-48b9-41fb-acd5-778e3e3af16e.png"
             });
-            console.log("初始化: 全局配置已创建");
         }
     } catch (err) { console.error("初始化数据失败:", err); }
 }
@@ -113,28 +111,13 @@ const requireAdmin = async (req, res, next) => {
 };
 
 // ==========================================
-// 5. API 接口
+// 5. 前台业务 API 接口
 // ==========================================
-app.get('/api/config', async (req, res) => {
-    const config = await Config.findOne({ identifier: "global" });
-    res.json(config || {});
-});
-
-app.post('/api/config', requireAdmin, async (req, res) => {
-    await Config.findOneAndUpdate({ identifier: "global" }, req.body, { upsert: true });
-    res.json({ success: true });
-});
-
-app.get('/api/prizes', async (req, res) => {
-    const prizes = await Prize.find();
-    res.json(prizes);
-});
-
+app.get('/api/config', async (req, res) => { res.json(await Config.findOne({ identifier: "global" }) || {}); });
+app.get('/api/prizes', async (req, res) => { res.json(await Prize.find()); });
 app.get('/api/stats', async (req, res) => {
     const users = await User.find({ role: 'user' });
-    const totalUsers = users.length;
-    const totalRewards = users.reduce((sum, u) => sum + u.rewards.length, 0);
-    res.json({ totalUsers: totalUsers, totalRewards: totalRewards });
+    res.json({ totalUsers: users.length, totalRewards: users.reduce((sum, u) => sum + u.rewards.length, 0) });
 });
 
 app.post('/api/login', async (req, res) => {
@@ -143,46 +126,35 @@ app.post('/api/login', async (req, res) => {
         let user = await User.findOne({ phone: phone });
 
         if (isAdminLogin) {
-            if (!user || user.password !== password || user.role !== 'admin') {
-                return res.status(401).json({ error: '管理员账号或密码错误' });
-            }
+            if (!user || user.password !== password || user.role !== 'admin') return res.status(401).json({ error: '管理员账号或密码错误' });
             return res.json({ token: user.phone, role: user.role });
         } else {
             if (user && user.role === 'admin') return res.status(403).json({ error: '管理员请通过专属通道登录' });
             if (!user) {
-                user = await User.create({ phone, role: 'user', chances: 1, rewards: [], pendingPrize: "" });
+                user = await User.create({ phone, role: 'user', chances: 1, rewards: [], pendingPrize: "", registerTime: new Date().toLocaleString() });
             }
+            // 【数据双写】：确保每个登录用户都有独立的 Customer 档案
+            await Customer.findOneAndUpdate({ phone }, { $setOnInsert: { phone, registerTime: user.registerTime } }, { upsert: true });
             return res.json({ token: user.phone, role: user.role });
         }
     } catch (err) { res.status(500).json({ error: '服务器错误' }); }
 });
 
 app.get('/api/user', async (req, res) => {
-    const phone = req.headers.authorization;
-    const user = await User.findOne({ phone: phone });
+    const user = await User.findOne({ phone: req.headers.authorization });
     user ? res.json(user) : res.status(404).json({ error: '用户不存在' });
 });
 
 app.post('/api/draw', async (req, res) => {
     try {
-        const phone = req.headers.authorization;
-        const user = await User.findOne({ phone: phone });
-        
+        const user = await User.findOne({ phone: req.headers.authorization });
         if (!user) return res.status(404).json({ error: '用户不存在' });
-        
-        if(user.pendingPrize) {
-            return res.status(400).json({ error: '您有一个尚未填写的奖品，请先完善信息', hasPending: true });
-        }
-        
-        if (user.chances <= 0) {
-            return res.status(400).json({ error: '没有抽奖次数了' });
-        }
+        if (user.pendingPrize) return res.status(400).json({ error: '您有尚未填写的奖品', hasPending: true });
+        if (user.chances <= 0) return res.status(400).json({ error: '没有抽奖次数了' });
 
         const prizes = await Prize.find();
-        const totalWeight = prizes.reduce((sum, p) => sum + Number(p.weight), 0);
-        let randomNum = Math.random() * totalWeight;
+        let randomNum = Math.random() * prizes.reduce((sum, p) => sum + Number(p.weight), 0);
         let wonPrize = prizes[prizes.length - 1];
-
         for (let prize of prizes) {
             if (randomNum < prize.weight) { wonPrize = prize; break; }
             randomNum -= prize.weight;
@@ -198,88 +170,108 @@ app.post('/api/draw', async (req, res) => {
 
 app.post('/api/claim', async (req, res) => {
     try {
-        const phone = req.headers.authorization;
-        const user = await User.findOne({ phone: phone });
-        
-        if (!user) return res.status(404).json({ error: '用户不存在' });
-        if (!user.pendingPrize) return res.status(400).json({ error: '当前没有待领取的奖品' });
+        const user = await User.findOne({ phone: req.headers.authorization });
+        if (!user || !user.pendingPrize) return res.status(400).json({ error: '无效请求' });
 
         const { userName, city, stage, layout, budget } = req.body;
-
-        user.rewards.push({ name: user.pendingPrize, time: new Date().toLocaleString() });
-        user.pendingPrize = ""; 
+        const winTime = new Date().toLocaleString();
         
+        // 1. 更新 User 核心表
+        user.rewards.push({ name: user.pendingPrize, time: winTime });
         user.claimInfo = { userName, city, stage, layout, budget };
-        
+        const prizeToClaim = user.pendingPrize;
+        user.pendingPrize = ""; 
         await user.save();
+
+        // 2. 更新 Customer 档案表 (解耦)
+        await Customer.findOneAndUpdate(
+            { phone: user.phone },
+            { name: userName, stage: stage, layout: layout, budget: budget, followUpStatus: "待联系" },
+            { upsert: true }
+        );
+
+        // 3. 生成独立的 Reward 记录 (解耦)
+        await RewardRecord.create({
+            phone: user.phone, userName: userName, prizeName: prizeToClaim, winTime: winTime, claimStatus: "未联系"
+        });
+
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: '提交失败' }); }
 });
 
 app.post('/api/abandon', async (req, res) => {
     try {
-        const phone = req.headers.authorization;
-        const user = await User.findOne({ phone: phone });
-        
-        if (user && user.pendingPrize) {
-            user.pendingPrize = ""; 
-            await user.save();
-        }
+        const user = await User.findOne({ phone: req.headers.authorization });
+        if (user && user.pendingPrize) { user.pendingPrize = ""; await user.save(); }
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: '操作失败' }); }
 });
 
-app.get('/api/admin/data', requireAdmin, async (req, res) => {
-    const users = await User.find({ role: 'user' });
-    const prizes = await Prize.find();
-    const admin = await User.findOne({ role: 'admin' });
-    res.json({ users, prizes, admin });
-});
-
-app.post('/api/admin/prizes', requireAdmin, async (req, res) => {
-    await Prize.deleteMany({}); 
-    await Prize.insertMany(req.body); 
+// ==========================================
+// 6. 后台管理独立模块 API
+// ==========================================
+// 系统设置 API
+app.post('/api/config', requireAdmin, async (req, res) => {
+    await Config.findOneAndUpdate({ identifier: "global" }, req.body, { upsert: true });
     res.json({ success: true });
 });
-
-app.post('/api/admin/users', requireAdmin, async (req, res) => {
-    const incomingUsers = req.body;
-    for (let u of incomingUsers) {
-        if (u.phone && u.role !== 'admin') {
-            await User.updateOne({ phone: u.phone }, { chances: u.chances });
-        }
-    }
-    res.json({ success: true });
-});
-
-app.post('/api/admin/reset-rewards', requireAdmin, async (req, res) => {
-    try {
-        const { phone } = req.body;
-        const user = await User.findOne({ phone: phone, role: 'user' });
-        if(user) {
-            user.rewards = [];
-            user.pendingPrize = ""; 
-            await user.save();
-            res.json({ success: true });
-        } else {
-            res.status(404).json({ error: '未找到指定用户' });
-        }
-    } catch(err) {
-        res.status(500).json({ error: '重置失败' });
-    }
-});
-
 app.post('/api/admin/account', requireAdmin, async (req, res) => {
     const admin = await User.findOne({ role: 'admin' });
-    if (admin) {
-        admin.phone = req.body.phone;
-        if (req.body.password) admin.password = req.body.password;
-        await admin.save();
+    if (admin) { admin.phone = req.body.phone; if (req.body.password) admin.password = req.body.password; await admin.save(); }
+    res.json({ success: true });
+});
+
+// 奖品库 API
+app.post('/api/admin/prizes', requireAdmin, async (req, res) => {
+    await Prize.deleteMany({}); await Prize.insertMany(req.body); res.json({ success: true });
+});
+
+// 用户管理 API (简化版，仅含基础次数)
+app.get('/api/admin/users', requireAdmin, async (req, res) => {
+    const users = await User.find({ role: 'user' }).select('phone chances registerTime');
+    const admin = await User.findOne({ role: 'admin' }).select('phone');
+    const prizes = await Prize.find();
+    res.json({ users, admin, prizes });
+});
+app.post('/api/admin/users', requireAdmin, async (req, res) => {
+    for (let u of req.body) { if (u.phone && u.role !== 'admin') await User.updateOne({ phone: u.phone }, { chances: u.chances }); }
+    res.json({ success: true });
+});
+app.post('/api/admin/reset-rewards', requireAdmin, async (req, res) => {
+    await User.updateOne({ phone: req.body.phone, role: 'user' }, { rewards: [], pendingPrize: "" });
+    // 同步删除独立的领奖记录
+    await RewardRecord.deleteMany({ phone: req.body.phone });
+    res.json({ success: true });
+});
+
+// [新增] 独立的客户跟进管理 API
+app.get('/api/admin/customers', requireAdmin, async (req, res) => {
+    // 自动数据清洗：为没有 Customer 档案的老用户自动创建档案
+    const allUsers = await User.find({ role: 'user' });
+    for (let u of allUsers) {
+        await Customer.updateOne(
+            { phone: u.phone },
+            { $setOnInsert: { phone: u.phone, registerTime: u.registerTime || new Date().toLocaleString(), name: u.claimInfo?.userName || '-' } },
+            { upsert: true }
+        );
     }
+    const customers = await Customer.find().sort({ registerTime: -1 });
+    res.json(customers);
+});
+app.put('/api/admin/customers/:phone', requireAdmin, async (req, res) => {
+    await Customer.updateOne({ phone: req.params.phone }, req.body);
+    res.json({ success: true });
+});
+
+// [新增] 独立的中奖记录管理 API
+app.get('/api/admin/rewards', requireAdmin, async (req, res) => {
+    const records = await RewardRecord.find().sort({ winTime: -1 });
+    res.json(records);
+});
+app.put('/api/admin/rewards/:id', requireAdmin, async (req, res) => {
+    await RewardRecord.findByIdAndUpdate(req.params.id, { claimStatus: req.body.claimStatus });
     res.json({ success: true });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`\n🚀 服务已启动! 运行在端口: ${PORT}\n`);
-});
+app.listen(PORT, () => { console.log(`\n🚀 NOEY 服务已启动! 运行在端口: ${PORT}\n`); });

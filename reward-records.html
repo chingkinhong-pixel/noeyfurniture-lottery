@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOEY - 中奖流水库</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        body { background-color: #F4F4F5; font-family: -apple-system, sans-serif; color: #1A1A1A; }
+        .nav-link { color: #71717A; padding-bottom: 12px; font-size: 14px; letter-spacing: 0.1em; transition: all 0.3s; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 6px; }
+        .nav-link:hover { color: #1A1A1A; }
+        .nav-link.active { color: #1A1A1A; font-weight: 600; border-bottom: 2px solid #1A1A1A; }
+        .table-header { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #71717A; border-bottom: 2px solid #E4E4E7; padding: 12px 16px; background-color: #FAFAFA;}
+        .table-cell { font-size: 13px; padding: 16px; border-bottom: 1px solid #F4F4F5; vertical-align: middle;}
+        .table-row { transition: background-color 0.2s; }
+        .table-row:hover { background-color: #FAFAFA; }
+        
+        /* 优化后的状态颜色 */
+        .status-未领取 { color: #DC2626; background: #FEF2F2; padding: 4px 8px; border-radius: 4px; border: 1px solid #FEE2E2;}
+        .status-未联系 { color: #D97706; background: #FFFBEB; padding: 4px 8px; border-radius: 4px; border: 1px solid #FEF3C7;}
+        .status-已通知 { color: #2563EB; background: #EFF6FF; padding: 4px 8px; border-radius: 4px; border: 1px solid #DBEAFE;}
+        .status-已领取 { color: #16A34A; background: #F0FDF4; padding: 4px 8px; border-radius: 4px; border: 1px solid #DCFCE7; font-weight: bold;}
+        .status-已完成 { color: #9CA3AF; background: #F3F4F6; padding: 4px 8px; border-radius: 4px; text-decoration: line-through; border: 1px solid #E5E7EB;}
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+    
+    <header class="bg-white border-b border-[#EBEBEB] sticky top-0 z-50 shadow-sm">
+        <div class="max-w-[1200px] mx-auto px-6 pt-6 flex justify-between items-end">
+            <div>
+                <h1 class="text-xl font-bold tracking-widest mb-6 flex items-center gap-2">
+                    <i class="ph-fill ph-leaf text-[#8C6A4F]"></i> NOEY REWARDS
+                </h1>
+                <nav class="flex space-x-8">
+                    <a href="admin.html" class="nav-link"><i class="ph ph-faders text-lg"></i> 基础设置与资产</a>
+                    <a href="customer-management.html" class="nav-link"><i class="ph ph-users text-lg"></i> 客户跟进 CRM</a>
+                    <a href="reward-records.html" class="nav-link active"><i class="ph ph-gift text-lg"></i> 中奖流水库</a>
+                </nav>
+            </div>
+            <button onclick="logout()" class="mb-6 text-xs text-gray-400 hover:text-black tracking-widest uppercase transition flex items-center gap-1">
+                 <i class="ph ph-sign-out text-lg"></i> 退出
+            </button>
+        </div>
+    </header>
+
+    <div class="max-w-[1200px] mx-auto px-6 py-8">
+        <div class="bg-white border border-[#E4E4E7] rounded-xl shadow-sm overflow-hidden">
+            <div class="p-6 border-b border-gray-100 bg-white flex justify-between items-center">
+                <div>
+                     <h2 class="text-base font-bold tracking-widest uppercase flex items-center gap-2 text-gray-800">
+                         <i class="ph-fill ph-ticket text-[#8C6A4F]"></i> 独立中奖流水核销单
+                     </h2>
+                     <p class="text-[11px] text-gray-400 mt-1">供行政与后勤部门核销发奖使用的独立流水清单。</p>
+                </div>
+            </div>
+            
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr>
+                        <th class="table-header w-48"><div class="flex items-center gap-1"><i class="ph ph-user-circle"></i> 中奖用户信息</div></th>
+                        <th class="table-header w-40"><div class="flex items-center gap-1"><i class="ph ph-calendar"></i> 获奖时间</div></th>
+                        <th class="table-header"><div class="flex items-center gap-1"><i class="ph ph-gift"></i> 所获定制礼遇</div></th>
+                        <th class="table-header w-48"><div class="flex items-center gap-1"><i class="ph ph-check-circle"></i> 发放状态核销</div></th>
+                    </tr>
+                </thead>
+                <tbody id="recordsTableBody">
+                    <!-- JS 渲染区 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = '/login.html';
+        const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
+        
+        const claimStatusOptions = ['未领取', '未联系', '已通知', '已领取', '已完成'];
+
+        async function loadRecords() {
+             document.getElementById('recordsTableBody').innerHTML = `<tr><td colspan="4" class="text-center py-16 text-gray-400 text-sm flex justify-center items-center gap-2"><i class="ph ph-spinner animate-spin text-xl"></i> 拉取核销清单中...</td></tr>`;
+            try {
+                const res = await fetch('/api/admin/rewards', { headers });
+                if (res.status === 403) return logout();
+                const records = await res.json();
+                renderRecords(records);
+            } catch(e) { console.error(e); }
+        }
+
+        function renderRecords(records) {
+            if(records.length === 0) {
+                 document.getElementById('recordsTableBody').innerHTML = `<tr><td colspan="4" class="text-center py-16 text-gray-400 text-sm"><i class="ph ph-empty text-4xl mb-2"></i><br>暂无中奖记录</td></tr>`;
+                 return;
+            }
+
+            document.getElementById('recordsTableBody').innerHTML = records.map(r => `
+                <tr class="table-row">
+                    <td class="table-cell">
+                        <div class="font-bold text-gray-800">${r.userName}</div>
+                        <div class="text-xs text-[#8C6A4F] font-mono mt-1">${r.phone}</div>
+                    </td>
+                    <td class="table-cell text-xs text-gray-500 font-mono">${r.winTime}</td>
+                    <td class="table-cell">
+                        <div class="text-[10px] text-gray-400 tracking-widest mb-1 uppercase font-bold bg-gray-50 inline-block px-1.5 rounded">${r.prizeType}</div>
+                        <div class="font-bold text-[#1A1A1A] text-sm">${r.prizeName}</div>
+                    </td>
+                    <td class="table-cell">
+                        <select onchange="updateRecordStatus('${r._id}', this.value)" class="text-xs font-bold rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#8C6A4F]/20 cursor-pointer transition shadow-sm status-${r.claimStatus}">
+                            ${claimStatusOptions.map(opt => `<option value="${opt}" ${r.claimStatus === opt ? 'selected' : ''} class="text-black bg-white">${opt}</option>`).join('')}
+                        </select>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function updateRecordStatus(id, status) {
+            try {
+                await fetch(`/api/admin/rewards/${id}`, { method: 'PUT', headers, body: JSON.stringify({ claimStatus: status }) });
+                loadRecords(); // 刷新以更新颜色
+            } catch(e) { alert('核销状态更新失败'); }
+        }
+
+        function logout() { localStorage.removeItem('token'); window.location.href = '/login.html'; }
+        
+        loadRecords();
+    </script>
+</body>
+</html>

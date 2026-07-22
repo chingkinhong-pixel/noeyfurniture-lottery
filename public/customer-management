@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOEY - 客户跟进管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #FAFAFA; font-family: -apple-system, sans-serif; color: #1A1A1A; }
+        .nav-link { color: #999; padding-bottom: 12px; font-size: 14px; letter-spacing: 0.1em; transition: all 0.3s; border-bottom: 2px solid transparent; }
+        .nav-link:hover { color: #1A1A1A; }
+        .nav-link.active { color: #1A1A1A; font-weight: 600; border-bottom: 2px solid #1A1A1A; }
+        .table-header { font-size: 10px; text-transform: uppercase; letter-spacing: 0.15em; color: #999; border-bottom: 1px solid #EBEBEB; padding-bottom: 8px; }
+        .table-cell { font-size: 12px; padding: 16px 0; border-bottom: 1px solid #F5F5F5; }
+        
+        /* NOEY 极简标签颜色体系 */
+        .tag-新客户 { background: #f3f4f6; color: #374151; }
+        .tag-待联系 { background: #E6D5B8; color: #5C1615; }
+        .tag-已联系 { background: #dbeafe; color: #1e40af; }
+        .tag-已预约设计 { background: #f3e8ff; color: #6b21a8; }
+        .tag-已成交 { background: #dcfce7; color: #166534; }
+        .tag-暂无需求 { background: #fef2f2; color: #991b1b; }
+    </style>
+</head>
+<body class="min-h-screen">
+    
+    <header class="bg-white border-b border-[#EBEBEB] sticky top-0 z-50">
+        <div class="max-w-[1400px] mx-auto px-6 pt-6 flex justify-between items-end">
+            <div>
+                <h1 class="text-xl font-bold tracking-widest mb-6">NOEY CRM</h1>
+                <nav class="flex space-x-8">
+                    <a href="admin.html" class="nav-link">基础设置与资产</a>
+                    <a href="customer-management.html" class="nav-link active">客户跟进 CRM</a>
+                    <a href="reward-records.html" class="nav-link">中奖流水库</a>
+                </nav>
+            </div>
+            <button onclick="logout()" class="mb-6 text-xs text-gray-400 hover:text-black tracking-widest transition">退出</button>
+        </div>
+    </header>
+
+    <div class="max-w-[1400px] mx-auto px-6 py-8">
+        <div class="bg-white border border-[#EBEBEB] rounded-lg p-6 shadow-sm overflow-x-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-sm font-bold tracking-widest uppercase">独立客户档案</h2>
+                <button onclick="loadCustomers()" class="text-xs text-gray-500 hover:text-black border px-3 py-1 rounded transition">刷新数据</button>
+            </div>
+            
+            <table class="w-full text-left border-collapse min-w-[1200px]">
+                <thead>
+                    <tr>
+                        <th class="table-header w-32">基础信息</th>
+                        <th class="table-header w-24">来源渠道</th>
+                        <th class="table-header w-48">消费意向 (阶段/预算/户型)</th>
+                        <th class="table-header w-24">需求类型</th>
+                        <th class="table-header w-32">跟进状态</th>
+                        <th class="table-header">系统备注 (自动保存)</th>
+                    </tr>
+                </thead>
+                <tbody id="customerTableBody">
+                    <!-- JS 渲染区 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = '/login.html';
+        const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
+        
+        const statusOptions = ['新客户', '待联系', '已联系', '已预约设计', '已成交', '暂无需求'];
+        const needTypeOptions = ['未确定', '全屋定制', '柜类定制', '单品家具', '设计方案'];
+
+        async function loadCustomers() {
+            document.getElementById('customerTableBody').innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-400 text-sm">数据加载清洗中...</td></tr>`;
+            try {
+                const res = await fetch('/api/admin/customers', { headers });
+                if (res.status === 403) return logout();
+                const customers = await res.json();
+                renderCustomers(customers);
+            } catch(e) { console.error(e); }
+        }
+
+        function renderCustomers(customers) {
+            document.getElementById('customerTableBody').innerHTML = customers.map(c => `
+                <tr>
+                    <td class="table-cell">
+                        <div class="font-bold text-[#1A1A1A]">${c.name}</div>
+                        <div class="text-xs text-gray-500 font-mono my-1">${c.phone}</div>
+                        <div class="text-[9px] text-gray-400 tracking-wider">${c.registerTime.split(' ')[0]}</div>
+                    </td>
+                    <td class="table-cell text-xs text-gray-500">${c.source}</td>
+                    <td class="table-cell">
+                        <div class="flex flex-col gap-1 text-[11px] text-gray-600">
+                            <span class="bg-gray-50 px-2 py-0.5 rounded w-fit border border-gray-100">${c.stage}</span>
+                            <span class="bg-gray-50 px-2 py-0.5 rounded w-fit border border-gray-100">${c.budget}</span>
+                            <span class="bg-gray-50 px-2 py-0.5 rounded w-fit border border-gray-100">${c.layout}</span>
+                        </div>
+                    </td>
+                    <td class="table-cell">
+                        <select onchange="updateCustomer('${c.phone}', 'needType', this.value)" class="text-xs border border-gray-200 rounded p-1 focus:outline-none focus:border-black bg-transparent">
+                            ${needTypeOptions.map(opt => `<option value="${opt}" ${c.needType === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td class="table-cell">
+                        <select onchange="updateCustomer('${c.phone}', 'followUpStatus', this.value)" class="text-[11px] font-bold rounded px-2 py-1 focus:outline-none appearance-none tag-${c.followUpStatus}">
+                            ${statusOptions.map(opt => `<option value="${opt}" ${c.followUpStatus === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td class="table-cell pr-4 relative">
+                        <textarea onblur="updateCustomer('${c.phone}', 'remark', this.value)" class="w-full text-xs border border-gray-200 rounded p-2 h-16 resize-none focus:outline-none focus:border-[#8C6A4F] bg-gray-50 focus:bg-white transition" placeholder="例如：2026-07-22 客户喜欢极简风格，预算30万...">${c.remark}</textarea>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function updateCustomer(phone, field, value) {
+            const body = {}; body[field] = value;
+            try {
+                await fetch(`/api/admin/customers/${phone}`, { method: 'PUT', headers, body: JSON.stringify(body) });
+                // 如果是修改状态，局部刷新以应用颜色类
+                if(field === 'followUpStatus') loadCustomers();
+            } catch(e) { alert('更新失败'); }
+        }
+
+        function logout() { localStorage.removeItem('token'); window.location.href = '/login.html'; }
+        
+        loadCustomers();
+    </script>
+</body>
+</html>

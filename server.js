@@ -22,7 +22,7 @@ mongoose.connect(MONGODB_URI)
 // ==========================================
 // 2. 定义数据模型 (Schema)
 // ==========================================
-// [保持不变] 核心用户表 (兼容前台)
+// 核心用户表
 const userSchema = new mongoose.Schema({
     phone: { type: String, required: true, unique: true },
     password: { type: String, default: "" },
@@ -35,7 +35,7 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
-// [新增] 独立的客户跟进表
+// 独立的客户跟进表
 const customerSchema = new mongoose.Schema({
     phone: { type: String, required: true, unique: true },
     name: { type: String, default: "-" },
@@ -44,20 +44,20 @@ const customerSchema = new mongoose.Schema({
     stage: { type: String, default: "初步了解" },
     budget: { type: String, default: "未确定" },
     layout: { type: String, default: "未确定" },
-    needType: { type: String, default: "未确定" }, // 需求类型
-    followUpStatus: { type: String, default: "新客户" }, // 新客户, 待联系, 已联系, 已预约设计, 已成交, 暂无需求
+    needType: { type: String, default: "未确定" },
+    followUpStatus: { type: String, default: "新客户" },
     remark: { type: String, default: "" }
 });
 const Customer = mongoose.model('Customer', customerSchema);
 
-// [新增] 独立的中奖记录表
+// 独立的中奖记录表
 const rewardRecordSchema = new mongoose.Schema({
     phone: { type: String, required: true },
     userName: { type: String, default: "-" },
     prizeName: { type: String, required: true },
     prizeType: { type: String, default: "常规奖品" },
     winTime: { type: String, required: true },
-    claimStatus: { type: String, default: "未领取" } // 未领取, 未联系, 已通知, 已领取, 已完成
+    claimStatus: { type: String, default: "未领取" }
 });
 const RewardRecord = mongoose.model('RewardRecord', rewardRecordSchema);
 
@@ -101,7 +101,7 @@ async function initData() {
 setTimeout(initData, 2000);
 
 // ==========================================
-// 4. 权限拦截器 (中间件)
+// 4. 权限拦截器
 // ==========================================
 const requireAdmin = async (req, res, next) => {
     const phone = req.headers.authorization;
@@ -120,6 +120,21 @@ app.get('/api/stats', async (req, res) => {
     res.json({ totalUsers: users.length, totalRewards: users.reduce((sum, u) => sum + u.rewards.length, 0) });
 });
 
+// [新增] 获取最新中奖名单用于前端滚动展示 (脱敏处理，保护隐私)
+app.get('/api/public/winners', async (req, res) => {
+    try {
+        const records = await RewardRecord.find({}).sort({ winTime: -1 }).limit(50);
+        const safeRecords = records.map(r => ({
+            userName: r.userName && r.userName !== '-' ? r.userName[0] + (r.userName.length > 1 ? (r.userName[1] === '先生' || r.userName[1] === '女士' ? r.userName.substring(1) : '**') : '女士') : '尊贵客户',
+            phone: r.phone.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2"),
+            prizeName: r.prizeName.includes('-') ? r.prizeName.split('-')[1].trim() : (r.prizeName.includes('：') ? r.prizeName.split('：')[1].trim() : r.prizeName)
+        }));
+        res.json(safeRecords);
+    } catch (e) {
+        res.json([]);
+    }
+});
+
 app.post('/api/login', async (req, res) => {
     try {
         const { phone, password, isAdminLogin } = req.body;
@@ -133,7 +148,6 @@ app.post('/api/login', async (req, res) => {
             if (!user) {
                 user = await User.create({ phone, role: 'user', chances: 1, rewards: [], pendingPrize: "", registerTime: new Date().toLocaleString() });
             }
-            // 【数据双写】：确保每个登录用户都有独立的 Customer 档案
             await Customer.findOneAndUpdate({ phone }, { $setOnInsert: { phone, registerTime: user.registerTime } }, { upsert: true });
             return res.json({ token: user.phone, role: user.role });
         }
@@ -176,23 +190,27 @@ app.post('/api/claim', async (req, res) => {
         const { userName, city, stage, layout, budget } = req.body;
         const winTime = new Date().toLocaleString();
         
-        // 1. 更新 User 核心表
         user.rewards.push({ name: user.pendingPrize, time: winTime });
         user.claimInfo = { userName, city, stage, layout, budget };
         const prizeToClaim = user.pendingPrize;
         user.pendingPrize = ""; 
         await user.save();
 
-        // 2. 更新 Customer 档案表 (解耦)
+        let cleanName = userName;
+        if(userName.includes('先生') || userName.includes('女士')) {
+            // Keep as is
+        } else {
+            // Optional: Auto append if needed, but keeping original input is safer.
+        }
+
         await Customer.findOneAndUpdate(
             { phone: user.phone },
-            { name: userName, stage: stage, layout: layout, budget: budget, followUpStatus: "待联系" },
+            { name: cleanName, stage: stage, layout: layout, budget: budget, followUpStatus: "待联系" },
             { upsert: true }
         );
 
-        // 3. 生成独立的 Reward 记录 (解耦)
         await RewardRecord.create({
-            phone: user.phone, userName: userName, prizeName: prizeToClaim, winTime: winTime, claimStatus: "未联系"
+            phone: user.phone, userName: cleanName, prizeName: prizeToClaim, winTime: winTime, claimStatus: "未联系"
         });
 
         res.json({ success: true });
@@ -210,7 +228,6 @@ app.post('/api/abandon', async (req, res) => {
 // ==========================================
 // 6. 后台管理独立模块 API
 // ==========================================
-// 系统设置 API
 app.post('/api/config', requireAdmin, async (req, res) => {
     await Config.findOneAndUpdate({ identifier: "global" }, req.body, { upsert: true });
     res.json({ success: true });
@@ -221,14 +238,13 @@ app.post('/api/admin/account', requireAdmin, async (req, res) => {
     res.json({ success: true });
 });
 
-// 奖品库 API
 app.post('/api/admin/prizes', requireAdmin, async (req, res) => {
     await Prize.deleteMany({}); await Prize.insertMany(req.body); res.json({ success: true });
 });
 
-// 用户管理 API (简化版，仅含基础次数)
+// 用户管理 API 
 app.get('/api/admin/users', requireAdmin, async (req, res) => {
-    const users = await User.find({ role: 'user' }).select('phone chances registerTime');
+    const users = await User.find({ role: 'user' }).select('phone chances registerTime rewards');
     const admin = await User.findOne({ role: 'admin' }).select('phone');
     const prizes = await Prize.find();
     res.json({ users, admin, prizes });
@@ -237,16 +253,19 @@ app.post('/api/admin/users', requireAdmin, async (req, res) => {
     for (let u of req.body) { if (u.phone && u.role !== 'admin') await User.updateOne({ phone: u.phone }, { chances: u.chances }); }
     res.json({ success: true });
 });
+// 独立的更新单个用户次数接口 (优化分页操作)
+app.put('/api/admin/users/:phone/chances', requireAdmin, async (req, res) => {
+    await User.updateOne({ phone: req.params.phone, role: 'user' }, { chances: req.body.chances });
+    res.json({ success: true });
+});
 app.post('/api/admin/reset-rewards', requireAdmin, async (req, res) => {
     await User.updateOne({ phone: req.body.phone, role: 'user' }, { rewards: [], pendingPrize: "" });
-    // 同步删除独立的领奖记录
     await RewardRecord.deleteMany({ phone: req.body.phone });
     res.json({ success: true });
 });
 
-// [新增] 独立的客户跟进管理 API
+// 独立的客户跟进管理 API
 app.get('/api/admin/customers', requireAdmin, async (req, res) => {
-    // 自动数据清洗：为没有 Customer 档案的老用户自动创建档案
     const allUsers = await User.find({ role: 'user' });
     for (let u of allUsers) {
         await Customer.updateOne(
@@ -263,7 +282,7 @@ app.put('/api/admin/customers/:phone', requireAdmin, async (req, res) => {
     res.json({ success: true });
 });
 
-// [新增] 独立的中奖记录管理 API
+// 独立的中奖记录管理 API
 app.get('/api/admin/rewards', requireAdmin, async (req, res) => {
     const records = await RewardRecord.find().sort({ winTime: -1 });
     res.json(records);

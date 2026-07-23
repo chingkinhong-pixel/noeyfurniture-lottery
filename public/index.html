@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
+        /* 撤销了 overflow-x: hidden 等强行限制宽度的属性 */
         body { background-color: #F7F5F0; font-family: 'Inter', -apple-system, sans-serif; color: #1A1A1A; -webkit-font-smoothing: antialiased; }
         .serif-font { font-family: 'Noto Serif SC', serif; }
         .accent-color { color: #8C6A4F; }
@@ -14,28 +15,46 @@
         .premium-card { background: #FFFFFF; border: 1px solid rgba(0,0,0,0.04); transition: transform 0.4s ease, box-shadow 0.4s ease; border-radius: 4px; }
         .premium-card:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(0,0,0,0.04); }
         
-        /* 赌场级高感官大转盘 (勃艮第红 + 香槟金) */
+        /* [已恢复] 赌场级高感官大转盘 (原始固定尺寸与绝对圆形) */
         .wheel-container { position: relative; width: 340px; height: 340px; margin: 0 auto; border-radius: 50%; border: 8px solid #1A1A1A; box-shadow: 0 20px 50px rgba(0,0,0,0.15), inset 0 0 20px rgba(0,0,0,0.5); overflow: hidden; background: #1A1A1A;}
         .wheel { width: 100%; height: 100%; border-radius: 50%; transition: transform 4s cubic-bezier(0.2, 0.8, 0.1, 1); }
         
-        /* 奢华指针 */
+        /* [已恢复] 奢华指针 (恢复原始大小与位置) */
         .pointer-container { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); z-index: 30; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.3));}
         .pointer-outer { width: 0; height: 0; border-left: 16px solid transparent; border-right: 16px solid transparent; border-top: 32px solid #D4AF37; }
         .pointer-inner { position: absolute; top: 0; left: -12px; width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 24px solid #1A1A1A; }
         
-        /* 转盘中心 Logo 区 */
+        /* [已恢复] 转盘中心 Logo 区 (恢复固定尺寸) */
         .wheel-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70px; height: 70px; background: #1A1A1A; border-radius: 50%; border: 4px solid #D4AF37; z-index: 20; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); overflow: hidden;}
         .wheel-center img { width: 40px; height: 40px; object-fit: contain; }
 
         .btn-luxury { background: #1A1A1A; color: #FFFFFF; transition: all 0.3s ease; }
         .btn-luxury:hover:not(:disabled) { background: #5C1615; box-shadow: 0 10px 20px rgba(92,22,21,0.3); transform: translateY(-1px);}
         .btn-luxury:disabled { background: #D0CCC5; color: #999; cursor: not-allowed; box-shadow: none;}
+
+        /* 中奖滚动展示动画 (保留第二阶段新增的优秀功能) */
+        .scroller-mask {
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+            mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+            overflow: hidden;
+            height: 160px; 
+        }
+        .scroller-content {
+            display: flex;
+            flex-direction: column;
+            animation: scrollVertical 25s linear infinite;
+        }
+        .scroller-content:hover { animation-play-state: paused; }
+        @keyframes scrollVertical {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-50%); } 
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
-    <!-- 浅色导航栏：保留角落 Logo -->
+    <!-- 浅色导航栏 -->
     <nav class="px-6 py-4 flex justify-between items-center sticky top-0 z-50 bg-[#F7F5F0]/90 backdrop-blur-md border-b border-black/5">
-        <img id="logoBlack" src="" alt="NOEY" class="h-5 object-contain">
+        <img id="logoBlack" src="https://cdn.phototourl.com/free/2026-07-22-9af23acf-27a4-46c1-b357-9c86c6911389.png" alt="NOEY" class="h-5 object-contain">
         <div class="flex items-center gap-4 text-xs tracking-wider">
             <span class="text-gray-500 hidden md:inline">NOEY MEMBER /</span>
             <span id="userPhone" class="text-[#8C6A4F] font-medium"></span>
@@ -43,9 +62,9 @@
         </div>
     </nav>
 
-    <main class="flex-grow pb-24">
+    <main class="flex-grow pb-24 overflow-hidden">
         <!-- 1. 活动主题视觉区域 -->
-        <section class="flex flex-col items-center justify-center text-center pt-24 pb-16 px-4">
+        <section class="flex flex-col items-center justify-center text-center pt-24 pb-12 px-4">
             <div class="inline-flex items-center gap-2 mb-6 text-[#8C6A4F]">
                 <span class="w-8 h-[1px] bg-[#8C6A4F]"></span>
                 <span class="text-xs tracking-[0.3em] uppercase">Exclusive Event</span>
@@ -59,34 +78,28 @@
             </p>
         </section>
 
-        <!-- 2. 信任背书数据 (实时真实数据) -->
-        <section class="max-w-4xl mx-auto px-6 mb-20">
-            <div class="flex justify-center gap-12 md:gap-24 text-center border-y border-black/5 py-8 bg-white/30 backdrop-blur-sm rounded-lg">
-                <div>
-                    <div class="text-3xl font-light text-[#8C6A4F] mb-1 font-serif" id="statUsers">-</div>
-                    <div class="text-[11px] text-gray-400 tracking-[0.2em]">已尊享定制客户</div>
+        <!-- 2. 实时中奖滚动展示 (保留第二阶段的功能) -->
+        <section class="max-w-4xl mx-auto px-6 mb-20 w-full">
+            <div class="bg-white/40 backdrop-blur-sm rounded-xl border border-[#E6D5B8]/40 p-8 shadow-sm">
+                <div class="text-center mb-6">
+                    <h2 class="text-sm tracking-[0.3em] text-[#8C6A4F] uppercase serif-font font-bold">幸运客户礼遇榜</h2>
+                    <div class="w-8 h-[1px] bg-[#8C6A4F]/50 mx-auto mt-3"></div>
                 </div>
-                <div class="w-px bg-black/5"></div>
-                <div>
-                    <div class="text-3xl font-light text-[#8C6A4F] mb-1 font-serif" id="statRewards">-</div>
-                    <div class="text-[11px] text-gray-400 tracking-[0.2em]">已派发专属礼遇</div>
+                <div class="scroller-mask relative">
+                    <div id="scrollerEmpty" class="absolute inset-0 flex flex-col items-center justify-center text-gray-400 text-xs tracking-widest gap-2">
+                        <span>目前共有 <strong id="statUsers" class="text-[#8C6A4F] font-serif text-lg mx-1">-</strong> 位客户参与</span>
+                        <span>累计派发 <strong id="statRewards" class="text-[#8C6A4F] font-serif text-lg mx-1">-</strong> 份致臻礼品</span>
+                    </div>
+                    <div id="scrollerContent" class="scroller-content relative z-10 hidden">
+                        <!-- JS 将填充 <li> -->
+                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- 3. 奖品陈列区域 (提前展示诱惑) -->
-        <section class="max-w-5xl mx-auto px-6 mb-24">
-            <div class="text-center mb-10">
-                <h2 class="text-lg tracking-[0.2em] text-[#1A1A1A] uppercase serif-font font-bold">本期致臻礼品</h2>
-                <div class="w-12 h-[2px] bg-[#1A1A1A] mx-auto mt-4"></div>
-            </div>
-            <div id="prizesShowcase" class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-                <!-- 由 JS 渲染高级卡片 -->
-            </div>
-        </section>
-
-        <!-- 4. 核心博彩级抽奖区域 (核心操作区) -->
-        <section class="max-w-3xl mx-auto px-6 text-center mb-16 relative">
+        <!-- 3. 核心博彩级抽奖区域 (圆盘与比例已完全复原) -->
+        <section class="max-w-3xl mx-auto px-6 text-center mb-24 relative w-full">
+            <!-- 底部环境光圆形框架，跟随父级居中 -->
             <div class="absolute inset-0 bg-[#E6D5B8]/20 blur-3xl -z-10 rounded-full w-3/4 mx-auto h-3/4 mt-10"></div>
             
             <div class="wheel-container mb-12">
@@ -96,7 +109,7 @@
                 </div>
                 <div id="wheel" class="wheel"></div>
                 <div class="wheel-center">
-                    <img id="wheelLogo" src="" alt="NOEY">
+                    <img id="wheelLogo" src="https://cdn.phototourl.com/free/2026-07-22-3304ec9f-26ef-4847-b0b1-f9287f713966.png" alt="NOEY">
                 </div>
             </div>
 
@@ -106,8 +119,19 @@
             <p class="text-sm text-gray-500 tracking-widest mt-4">您当前拥有 <span id="chances" class="font-serif text-[#5C1615] text-xl font-bold mx-1">0</span> 次专属机会</p>
         </section>
 
-        <!-- 5. 个人中奖记录 (紧随抽奖结果) -->
-        <section class="max-w-lg mx-auto px-6 mb-24">
+        <!-- 4. 奖品陈列区域 -->
+        <section class="max-w-5xl mx-auto px-6 mb-24 w-full">
+            <div class="text-center mb-10">
+                <h2 class="text-lg tracking-[0.2em] text-[#1A1A1A] uppercase serif-font font-bold">本期致臻礼品</h2>
+                <div class="w-12 h-[2px] bg-[#1A1A1A] mx-auto mt-4"></div>
+            </div>
+            <div id="prizesShowcase" class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                <!-- 由 JS 渲染 -->
+            </div>
+        </section>
+
+        <!-- 5. 个人中奖记录 -->
+        <section class="max-w-lg mx-auto px-6 mb-24 w-full">
             <div class="premium-card p-8 rounded-lg bg-white/80 backdrop-blur text-center">
                 <h3 class="text-xs tracking-[0.2em] text-gray-500 uppercase mb-6 flex items-center justify-center gap-2">
                     <span class="w-1 h-1 bg-[#8C6A4F] rounded-full"></span> 
@@ -118,8 +142,8 @@
             </div>
         </section>
 
-        <!-- 6. 获得抽奖资格 (置于底部引导二次转化) -->
-        <section class="max-w-5xl mx-auto px-6 mb-10">
+        <!-- 6. 获得抽奖资格 -->
+        <section class="max-w-5xl mx-auto px-6 mb-10 w-full">
             <div class="text-center mb-10">
                 <h2 class="text-lg tracking-[0.2em] text-[#1A1A1A] uppercase serif-font font-bold">如何获得更多专属机会</h2>
                 <div class="w-12 h-[2px] bg-[#1A1A1A] mx-auto mt-4"></div>
@@ -130,9 +154,9 @@
         </section>
     </main>
 
-    <!-- 深色官方页脚：补充版权与商标声明 -->
+    <!-- 官方页脚 -->
     <footer class="bg-[#111111] text-white py-16 px-6 text-center border-t-4 border-[#8C6A4F]">
-        <img id="logoWhite" src="" alt="NOEY" class="h-6 object-contain mx-auto mb-8 opacity-90">
+        <img id="logoWhite" src="https://cdn.phototourl.com/free/2026-07-22-2a300550-48b9-41fb-acd5-778e3e3af16e.png" alt="NOEY" class="h-6 object-contain mx-auto mb-8 opacity-90">
         <div class="text-[10px] tracking-[0.2em] text-gray-400 uppercase space-y-3 font-light leading-loose">
             <p>NOEY Furniture Manufacture</p>
             <p>OUR PROMISE YOUR SATISFACTION</p>
@@ -147,15 +171,11 @@
     <div id="paymentModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-[#111]/80 backdrop-blur-sm opacity-0 transition-opacity duration-500">
         <div class="bg-[#F7F5F0] p-10 max-w-sm w-full mx-4 text-center border border-[#D4AF37]/30 shadow-2xl transform scale-95 transition-transform duration-500 relative rounded-lg" id="paymentModalContent">
             <button onclick="closePaymentModal()" class="absolute top-4 right-5 text-gray-400 hover:text-black text-3xl font-light leading-none">&times;</button>
-            
             <div class="w-12 h-12 rounded-full bg-[#E6D5B8] flex items-center justify-center mx-auto mb-4">
                 <svg class="w-6 h-6 text-[#5C1615]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7a4 4 0 00-8 0v4h8z"></path></svg>
             </div>
-            
             <h3 class="text-xl serif-font text-[#1A1A1A] mb-3 font-bold tracking-widest">锁定尊享礼遇</h3>
-            <p id="modalPaymentCopy" class="text-xs text-gray-600 mb-8 leading-relaxed tracking-wider bg-white p-4 border border-black/5 rounded">
-                <!-- 话术由JS动态加载 -->
-            </p>
+            <p id="modalPaymentCopy" class="text-xs text-gray-600 mb-8 leading-relaxed tracking-wider bg-white p-4 border border-black/5 rounded"></p>
             <div class="p-2 border-2 border-[#E6D5B8] bg-white inline-block mb-6 shadow-md rounded">
                 <img id="modalQrCode" src="" alt="QR Code" class="w-48 h-48 object-cover">
             </div>
@@ -163,10 +183,9 @@
         </div>
     </div>
 
-    <!-- 中奖弹窗 (带信息收集) -->
+    <!-- 中奖弹窗 (保留强制收集信息的逻辑) -->
     <div id="resultModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-[#111]/90 backdrop-blur-md opacity-0 transition-opacity duration-500">
         <div class="bg-gradient-to-b from-[#2a0808] to-[#111] border border-[#D4AF37]/40 p-8 max-w-sm w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-500 rounded-xl relative max-h-[90vh] overflow-y-auto" id="resultModalContent">
-            <!-- 闪光星星图标 -->
             <svg class="w-10 h-10 text-[#D4AF37] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
             
             <div class="text-center">
@@ -178,35 +197,35 @@
             <h4 class="text-xs text-[#D4AF37] mb-4 text-center tracking-widest font-bold">请完善信息，专属顾问将为您兑现礼遇</h4>
             <p class="text-[9px] text-gray-400 text-center mb-4 leading-relaxed">请务必正确填写，以便我们及时为您发放奖励。若放弃填写，视为自动放弃该奖品。</p>
             
-            <!-- 信息登记表单 -->
+            <!-- 表单区 -->
             <div class="space-y-3 text-left">
                 <input type="hidden" id="claimPrizeName">
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[9px] text-gray-400 mb-1 tracking-widest uppercase">Name / 您的姓名</label>
-                        <input type="text" id="claimName" class="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-xs focus:outline-none focus:border-[#D4AF37] transition-colors">
+                        <label class="block text-[9px] text-gray-400 mb-1 tracking-widest uppercase">您的姓氏 (必填)</label>
+                        <input type="text" id="claimName" class="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-xs focus:outline-none focus:border-[#D4AF37] transition-colors" placeholder="如：李先生/李女士">
                     </div>
                     <div>
-                        <label class="block text-[9px] text-gray-400 mb-1 tracking-widest uppercase">Phone / 联系电话</label>
+                        <label class="block text-[9px] text-gray-400 mb-1 tracking-widest uppercase">联系电话</label>
                         <input type="text" id="claimPhone" class="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-[#D4AF37] font-bold text-xs focus:outline-none focus:border-[#D4AF37] transition-colors">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-[9px] text-gray-400 mb-1 tracking-widest uppercase">City / 所在城市</label>
+                    <label class="block text-[9px] text-gray-400 mb-1 tracking-widest uppercase">所在城市 (必填)</label>
                     <input type="text" id="claimCity" class="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-xs focus:outline-none focus:border-[#D4AF37] transition-colors" placeholder="例如：上海市">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[9px] text-gray-400 mb-1 tracking-widest uppercase">Stage / 装修阶段</label>
+                        <label class="block text-[9px] text-gray-400 mb-1 tracking-widest uppercase">装修阶段</label>
                         <select id="claimStage" class="w-full bg-[#1A1A1A] border border-white/10 rounded px-3 py-2 text-white text-xs focus:outline-none focus:border-[#D4AF37]">
+                            <option value="初步了解">初步了解</option>
                             <option value="正在设计">正在设计</option>
                             <option value="准备装修">准备装修</option>
                             <option value="已经入住">已经入住</option>
-                            <option value="了解产品">了解产品</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-[9px] text-gray-400 mb-1 tracking-widest uppercase">Layout / 户型</label>
+                        <label class="block text-[9px] text-gray-400 mb-1 tracking-widest uppercase">户型</label>
                         <select id="claimLayout" class="w-full bg-[#1A1A1A] border border-white/10 rounded px-3 py-2 text-white text-xs focus:outline-none focus:border-[#D4AF37]">
                             <option value="两房">两房</option>
                             <option value="三房">三房</option>
@@ -216,8 +235,9 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-[9px] text-gray-400 mb-1 tracking-widest uppercase">Budget / 定制预算</label>
+                    <label class="block text-[9px] text-gray-400 mb-1 tracking-widest uppercase">定制预算</label>
                     <select id="claimBudget" class="w-full bg-[#1A1A1A] border border-white/10 rounded px-3 py-2 text-white text-xs focus:outline-none focus:border-[#D4AF37]">
+                        <option value="未确定">未确定</option>
                         <option value="10万以内">10万以内</option>
                         <option value="10-30万">10-30万</option>
                         <option value="30-50万">30-50万</option>
@@ -247,23 +267,14 @@
 
         async function init() {
             try {
-                // 1. 获取全局配置及 Logo
                 const cfgRes = await fetch('/api/config');
                 const config = await cfgRes.json();
                 document.getElementById('pageTitle').innerText = config.title;
                 document.getElementById('pageSubtitle').innerText = config.subtitle;
                 
-                // ==========================================
-                // 🎨 硬编码：绝对兜底的 3 款 Logo 链接 (已全部更新为最新链接)
-                // ==========================================
-                const MY_LOGO_BLACK = 'https://cdn.phototourl.com/free/2026-07-22-9af23acf-27a4-46c1-b357-9c86c6911389.png'; 
-                const MY_LOGO_WHITE = 'https://cdn.phototourl.com/free/2026-07-22-2a300550-48b9-41fb-acd5-778e3e3af16e.png'; 
-                const MY_LOGO_COLOR = 'https://cdn.phototourl.com/free/2026-07-22-3304ec9f-26ef-4847-b0b1-f9287f713966.png'; 
-
-                // 智能分配 Logo (如果后台被清空了，将永久使用硬编码的链接)
-                document.getElementById('logoBlack').src = config.logoBlackUrl || MY_LOGO_BLACK;
-                document.getElementById('logoWhite').src = config.logoWhiteUrl || MY_LOGO_WHITE;
-                document.getElementById('wheelLogo').src = config.logoWhiteUrl || config.logoColorUrl || MY_LOGO_COLOR;
+                document.getElementById('logoBlack').src = config.logoBlackUrl || 'https://cdn.phototourl.com/free/2026-07-22-9af23acf-27a4-46c1-b357-9c86c6911389.png';
+                document.getElementById('logoWhite').src = config.logoWhiteUrl || 'https://cdn.phototourl.com/free/2026-07-22-2a300550-48b9-41fb-acd5-778e3e3af16e.png';
+                document.getElementById('wheelLogo').src = config.logoWhiteUrl || config.logoColorUrl || 'https://cdn.phototourl.com/free/2026-07-22-3304ec9f-26ef-4847-b0b1-f9287f713966.png';
 
                 document.title = config.title;
                 renderRules(config.rules);
@@ -271,22 +282,51 @@
                 document.getElementById('modalPaymentCopy').innerText = config.paymentCopy || "";
                 document.getElementById('modalQrCode').src = config.qrCodeUrl || "";
 
-                // 2. 获取统计数据
-                const statsRes = await fetch('/api/stats');
-                const stats = await statsRes.json();
-                document.getElementById('statUsers').innerText = stats.totalUsers;
-                document.getElementById('statRewards').innerText = stats.totalRewards;
+                fetchStatsAndWinners();
 
-                // 3. 获取奖品并展示
                 const prizeRes = await fetch('/api/prizes');
                 prizes = await prizeRes.json();
                 renderPrizesShowcase(prizes);
                 renderWheel(prizes);
 
-                // 4. 获取用户数据并检查是否有遗留未领取的奖品
                 await refreshUserData();
-            } catch (e) {
-                console.error("加载失败", e);
+            } catch (e) { console.error("加载失败", e); }
+        }
+
+        async function fetchStatsAndWinners() {
+            const statsRes = await fetch('/api/stats');
+            const stats = await statsRes.json();
+            document.getElementById('statUsers').innerText = stats.totalUsers;
+            document.getElementById('statRewards').innerText = stats.totalRewards;
+
+            const winnerRes = await fetch('/api/public/winners');
+            const winners = await winnerRes.json();
+            
+            const scrollerContent = document.getElementById('scrollerContent');
+            const scrollerEmpty = document.getElementById('scrollerEmpty');
+            
+            if (winners && winners.length > 0) {
+                scrollerEmpty.classList.add('hidden');
+                scrollerContent.classList.remove('hidden');
+                
+                const renderItem = (w) => `
+                    <div class="py-3 flex items-center justify-between text-sm border-b border-gray-100/50 last:border-0 hover:bg-white/50 transition-colors px-2 rounded">
+                        <div class="flex items-center gap-3">
+                            <span class="text-xl">🎉</span>
+                            <div>
+                                <span class="font-bold text-[#1A1A1A]">${w.userName}</span>
+                                <span class="text-gray-400 text-xs ml-2 font-mono">${w.phone}</span>
+                            </div>
+                        </div>
+                        <div class="text-[#8C6A4F] font-medium text-xs bg-[#8C6A4F]/10 px-2.5 py-1 rounded-sm">
+                            获得：${w.prizeName}
+                        </div>
+                    </div>
+                `;
+
+                let html = winners.map(renderItem).join('');
+                if (winners.length > 3) html += html; 
+                scrollerContent.innerHTML = html;
             }
         }
 
@@ -298,7 +338,6 @@
             document.getElementById('userPhone').innerText = user.phone.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2");
             updateUserUI(user);
             
-            // 如果用户存在未领取的奖品，重新弹出填写框强制填写
             if(user.pendingPrize) {
                 let displayName = user.pendingPrize;
                 if(displayName.includes('-')) displayName = displayName.split('-')[1].trim();
@@ -314,13 +353,11 @@
             }
         }
 
-        // 引入精美的 SVG 矢量图作为规则图标
         const ruleIcon = `<svg class="w-8 h-8 mx-auto mb-4 text-[#8C6A4F] opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>`;
 
         function renderRules(rules) {
             if(!rules || rules.length === 0) return;
-            const container = document.getElementById('rulesContainer');
-            container.innerHTML = rules.map(rule => `
+            document.getElementById('rulesContainer').innerHTML = rules.map(rule => `
                 <div class="premium-card p-8 text-center flex flex-col justify-between h-full bg-white relative overflow-hidden group">
                     <div class="absolute top-0 left-0 w-full h-1 bg-[#E6D5B8] transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500"></div>
                     <div>
@@ -363,17 +400,18 @@
         }
 
         function renderPrizesShowcase(prizesList) {
-            const container = document.getElementById('prizesShowcase');
-            container.innerHTML = prizesList.map(p => `
+            document.getElementById('prizesShowcase').innerHTML = prizesList.map(p => `
                 <div class="premium-card p-6 bg-white border border-gray-100/50 flex flex-col justify-center">
                     ${formatPrizeCard(p.name)}
                 </div>
             `).join('');
         }
 
+        // [已恢复] 原始版本的转盘渲染算法
         function renderWheel(prizeList) {
             const wheel = document.getElementById('wheel');
             const sliceAngle = 360 / prizeList.length;
+            // 采用高级赌场配色：勃艮第红 与 香槟金 交替
             const colors = ['#5C1615', '#E6D5B8']; 
             const textColors = ['#E6D5B8', '#5C1615'];
             
@@ -385,6 +423,7 @@
                 if(displayName.includes('-')) displayName = displayName.split('-')[1].trim();
                 else if(displayName.includes('：')) displayName = displayName.split('：')[1].trim();
 
+                // 核心修复：更精确的扇形文字定位与抗遮挡算法
                 const textRotate = rotate + sliceAngle / 2 - 90;
 
                 return `
@@ -423,9 +462,7 @@
             const data = await res.json();
             if (data.error) { 
                 alert(data.error); 
-                if(data.hasPending) {
-                    refreshUserData(); 
-                }
+                if(data.hasPending) refreshUserData(); 
                 isDrawing = false; 
                 return; 
             }
@@ -446,10 +483,7 @@
                 
                 document.getElementById('modalPrizeName').innerText = displayName;
                 document.getElementById('claimPrizeName').value = data.prize.name; 
-                
-                if(!document.getElementById('claimPhone').value) {
-                    document.getElementById('claimPhone').value = data.user.phone;
-                }
+                if(!document.getElementById('claimPhone').value) document.getElementById('claimPhone').value = data.user.phone;
 
                 showResultModal();
                 updateUserUI(data.user);
@@ -457,7 +491,6 @@
             }, 4700);
         }
 
-        // 放弃奖品逻辑
         async function abandonPrize() {
             const confirmed = confirm('【重要提示】\n若稍后再说，您本次抽中的奖品将会丢失，且抽奖次数无法退回。\n您确定要放弃本次奖品吗？');
             if(confirmed) {
@@ -465,9 +498,7 @@
                     await fetch('/api/abandon', { method: 'POST', headers });
                     closeResultModal();
                     await refreshUserData();
-                } catch(e) {
-                    console.error("放弃操作失败", e);
-                }
+                } catch(e) { console.error("放弃操作失败", e); }
             }
         }
 
@@ -481,30 +512,21 @@
                 budget: document.getElementById('claimBudget').value
             };
             
-            if(!data.userName || !data.userPhone || !data.city) {
-                return alert('⚠️ 请完整填写您的姓名、电话和城市');
-            }
+            if(!data.userName || !data.userPhone || !data.city) return alert('⚠️ 请完整填写您的姓名、电话和城市');
             
             const btn = document.getElementById('claimSubmitBtn');
             btn.innerText = "提交中...";
             btn.disabled = true;
             
             try {
-                const res = await fetch('/api/claim', {
-                    method: 'POST',
-                    headers: { 'Authorization': token, 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
+                const res = await fetch('/api/claim', { method: 'POST', headers: { 'Authorization': token, 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
                 const resData = await res.json();
                 if(resData.error) throw new Error(resData.error);
                 
                 alert('登记成功！系统已录入，您的专属顾问将尽快与您联系。');
                 closeResultModal();
                 await refreshUserData(); 
-                
-                const el = document.getElementById('statRewards');
-                if(el.innerText !== '-') el.innerText = parseInt(el.innerText) + 1;
-                
+                fetchStatsAndWinners(); 
             } catch(e) {
                 alert(e.message || '提交失败');
             } finally {
@@ -513,7 +535,6 @@
             }
         }
 
-        /* 弹窗控制逻辑 */
         function showPaymentModal() {
             const modal = document.getElementById('paymentModal');
             modal.classList.remove('hidden');

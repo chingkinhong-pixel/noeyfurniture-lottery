@@ -7,16 +7,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
-        body { background-color: #F4F4F5; font-family: -apple-system, sans-serif; color: #1A1A1A; }
+        body { background-color: #F9F9F9; font-family: -apple-system, sans-serif; color: #1A1A1A; }
         .nav-link { color: #71717A; padding-bottom: 12px; font-size: 14px; letter-spacing: 0.1em; transition: all 0.3s; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 6px; }
         .nav-link:hover { color: #1A1A1A; }
         .nav-link.active { color: #1A1A1A; font-weight: 600; border-bottom: 2px solid #1A1A1A; }
-        .table-header { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #71717A; border-bottom: 2px solid #E4E4E7; padding: 12px 16px; background-color: #FAFAFA;}
-        .table-cell { font-size: 13px; padding: 16px; border-bottom: 1px solid #F4F4F5; vertical-align: middle;}
-        .table-row { transition: background-color 0.2s; }
+        .table-header { font-size: 11px; font-weight: 700; color: #71717A; border-bottom: 1px solid #EEEEEE; padding: 16px; background-color: #FAFAFA; text-align: left; white-space: nowrap;}
+        .table-cell { font-size: 13px; padding: 16px; border-bottom: 1px solid #FAFAFA; vertical-align: middle;}
+        .table-row { transition: background-color 0.2s; background: white;}
         .table-row:hover { background-color: #FAFAFA; }
         
-        /* 优化后的状态颜色 */
         .status-未领取 { color: #DC2626; background: #FEF2F2; padding: 4px 8px; border-radius: 4px; border: 1px solid #FEE2E2;}
         .status-未联系 { color: #D97706; background: #FFFBEB; padding: 4px 8px; border-radius: 4px; border: 1px solid #FEF3C7;}
         .status-已通知 { color: #2563EB; background: #EFF6FF; padding: 4px 8px; border-radius: 4px; border: 1px solid #DBEAFE;}
@@ -26,7 +25,7 @@
 </head>
 <body class="min-h-screen pb-12">
     
-    <header class="bg-white border-b border-[#EBEBEB] sticky top-0 z-50 shadow-sm">
+    <header class="bg-white border-b border-[#EEEEEE] sticky top-0 z-50 shadow-sm">
         <div class="max-w-[1200px] mx-auto px-6 pt-6 flex justify-between items-end">
             <div>
                 <h1 class="text-xl font-bold tracking-widest mb-6 flex items-center gap-2">
@@ -38,36 +37,48 @@
                     <a href="reward-records.html" class="nav-link active"><i class="ph ph-gift text-lg"></i> 中奖流水库</a>
                 </nav>
             </div>
-            <button onclick="logout()" class="mb-6 text-xs text-gray-400 hover:text-black tracking-widest uppercase transition flex items-center gap-1">
-                 <i class="ph ph-sign-out text-lg"></i> 退出
+            <button onclick="logout()" class="mb-6 text-xs text-gray-500 hover:text-black tracking-widest uppercase transition flex items-center gap-1">
+                 <i class="ph ph-sign-out"></i> 退出
             </button>
         </div>
     </header>
 
     <div class="max-w-[1200px] mx-auto px-6 py-8">
-        <div class="bg-white border border-[#E4E4E7] rounded-xl shadow-sm overflow-hidden">
-            <div class="p-6 border-b border-gray-100 bg-white flex justify-between items-center">
-                <div>
-                     <h2 class="text-base font-bold tracking-widest uppercase flex items-center gap-2 text-gray-800">
-                         <i class="ph-fill ph-ticket text-[#8C6A4F]"></i> 独立中奖流水核销单
-                     </h2>
-                     <p class="text-[11px] text-gray-400 mt-1">供行政与后勤部门核销发奖使用的独立流水清单。</p>
+        <div class="bg-white border border-[#EEEEEE] rounded-lg shadow-sm overflow-hidden">
+            
+            <div class="flex justify-between items-center p-6 border-b border-gray-100">
+                <div class="flex items-center gap-4">
+                    <h2 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                        独立中奖核销单
+                    </h2>
+                    <div class="relative ml-4">
+                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="搜索手机号、奖品或状态..." class="pl-9 pr-4 py-2 text-xs border border-gray-200 rounded bg-gray-50 focus:bg-white focus:outline-none focus:border-black transition w-64">
+                    </div>
                 </div>
             </div>
             
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr>
-                        <th class="table-header w-48"><div class="flex items-center gap-1"><i class="ph ph-user-circle"></i> 中奖用户信息</div></th>
-                        <th class="table-header w-40"><div class="flex items-center gap-1"><i class="ph ph-calendar"></i> 获奖时间</div></th>
-                        <th class="table-header"><div class="flex items-center gap-1"><i class="ph ph-gift"></i> 所获定制礼遇</div></th>
-                        <th class="table-header w-48"><div class="flex items-center gap-1"><i class="ph ph-check-circle"></i> 发放状态核销</div></th>
-                    </tr>
-                </thead>
-                <tbody id="recordsTableBody">
-                    <!-- JS 渲染区 -->
-                </tbody>
-            </table>
+            <div class="overflow-x-auto min-h-[500px]">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="table-header w-48">中奖用户信息</th>
+                            <th class="table-header w-48">获奖时间</th>
+                            <th class="table-header">所获定制礼遇</th>
+                            <th class="table-header w-48">发放状态核销</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsTableBody">
+                        <!-- JS 渲染区 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 分页栏 -->
+            <div class="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center text-sm">
+                <div class="text-gray-500" id="pageInfo"></div>
+                <div class="flex gap-2" id="paginationControls"></div>
+            </div>
         </div>
     </div>
 
@@ -78,46 +89,87 @@
         
         const claimStatusOptions = ['未领取', '未联系', '已通知', '已领取', '已完成'];
 
+        let allRecords = [];
+        let searchQuery = "";
+        let currentPage = 1;
+        const pageSize = 15;
+
         async function loadRecords() {
-             document.getElementById('recordsTableBody').innerHTML = `<tr><td colspan="4" class="text-center py-16 text-gray-400 text-sm flex justify-center items-center gap-2"><i class="ph ph-spinner animate-spin text-xl"></i> 拉取核销清单中...</td></tr>`;
+             document.getElementById('recordsTableBody').innerHTML = `<tr><td colspan="4" class="text-center py-16 text-gray-400 text-sm">加载中...</td></tr>`;
             try {
                 const res = await fetch('/api/admin/rewards', { headers });
                 if (res.status === 403) return logout();
-                const records = await res.json();
-                renderRecords(records);
+                allRecords = await res.json();
+                renderRecords();
             } catch(e) { console.error(e); }
         }
 
-        function renderRecords(records) {
-            if(records.length === 0) {
-                 document.getElementById('recordsTableBody').innerHTML = `<tr><td colspan="4" class="text-center py-16 text-gray-400 text-sm"><i class="ph ph-empty text-4xl mb-2"></i><br>暂无中奖记录</td></tr>`;
-                 return;
+        function handleSearch(query) {
+            searchQuery = query.trim().toLowerCase();
+            currentPage = 1;
+            renderRecords();
+        }
+
+        function renderRecords() {
+            // 1. 过滤
+            let filtered = allRecords;
+            if (searchQuery) {
+                filtered = filtered.filter(r => 
+                    (r.phone && r.phone.includes(searchQuery)) || 
+                    (r.prizeName && r.prizeName.toLowerCase().includes(searchQuery)) ||
+                    (r.claimStatus && r.claimStatus.includes(searchQuery))
+                );
             }
 
-            document.getElementById('recordsTableBody').innerHTML = records.map(r => `
-                <tr class="table-row">
-                    <td class="table-cell">
-                        <div class="font-bold text-gray-800">${r.userName}</div>
-                        <div class="text-xs text-[#8C6A4F] font-mono mt-1">${r.phone}</div>
-                    </td>
-                    <td class="table-cell text-xs text-gray-500 font-mono">${r.winTime}</td>
-                    <td class="table-cell">
-                        <div class="text-[10px] text-gray-400 tracking-widest mb-1 uppercase font-bold bg-gray-50 inline-block px-1.5 rounded">${r.prizeType}</div>
-                        <div class="font-bold text-[#1A1A1A] text-sm">${r.prizeName}</div>
-                    </td>
-                    <td class="table-cell">
-                        <select onchange="updateRecordStatus('${r._id}', this.value)" class="text-xs font-bold rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#8C6A4F]/20 cursor-pointer transition shadow-sm status-${r.claimStatus}">
-                            ${claimStatusOptions.map(opt => `<option value="${opt}" ${r.claimStatus === opt ? 'selected' : ''} class="text-black bg-white">${opt}</option>`).join('')}
-                        </select>
-                    </td>
-                </tr>
-            `).join('');
+            // 2. 分页
+            const total = filtered.length;
+            const totalPages = Math.ceil(total / pageSize) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            
+            const start = (currentPage - 1) * pageSize;
+            const paginated = filtered.slice(start, start + pageSize);
+
+            // 3. 渲染
+            const tbody = document.getElementById('recordsTableBody');
+            if(paginated.length === 0) {
+                 tbody.innerHTML = `<tr><td colspan="4" class="text-center py-16 text-gray-400 text-sm">暂无匹配记录</td></tr>`;
+            } else {
+                tbody.innerHTML = paginated.map(r => `
+                    <tr class="table-row">
+                        <td class="table-cell">
+                            <div class="font-bold text-gray-800">${r.userName}</div>
+                            <div class="text-xs text-[#8C6A4F] font-mono mt-1">${r.phone}</div>
+                        </td>
+                        <td class="table-cell text-xs text-gray-500 font-mono">${r.winTime}</td>
+                        <td class="table-cell">
+                            <div class="text-[10px] text-gray-400 mb-1 border border-gray-200 bg-gray-50 inline-block px-1.5 py-0.5 rounded">${r.prizeType}</div>
+                            <div class="font-bold text-[#1A1A1A] text-sm">${r.prizeName}</div>
+                        </td>
+                        <td class="table-cell">
+                            <select onchange="updateRecordStatus('${r._id}', this.value)" class="text-xs font-bold rounded p-1.5 focus:outline-none cursor-pointer transition shadow-sm status-${r.claimStatus}">
+                                ${claimStatusOptions.map(opt => `<option value="${opt}" ${r.claimStatus === opt ? 'selected' : ''} class="text-black bg-white">${opt}</option>`).join('')}
+                            </select>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            // 4. 分页控件
+            document.getElementById('pageInfo').innerText = `共 ${total} 条数据，当前第 ${currentPage} 页 / 共 ${totalPages} 页`;
+            document.getElementById('paginationControls').innerHTML = `
+                <button onclick="currentPage--; renderRecords()" ${currentPage === 1 ? 'disabled' : ''} class="px-3 py-1 bg-white border border-gray-200 rounded text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition">上一页</button>
+                <button onclick="currentPage++; renderRecords()" ${currentPage === totalPages ? 'disabled' : ''} class="px-3 py-1 bg-white border border-gray-200 rounded text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition">下一页</button>
+            `;
         }
 
         async function updateRecordStatus(id, status) {
             try {
                 await fetch(`/api/admin/rewards/${id}`, { method: 'PUT', headers, body: JSON.stringify({ claimStatus: status }) });
-                loadRecords(); // 刷新以更新颜色
+                
+                const idx = allRecords.findIndex(r => r._id === id);
+                if(idx > -1) allRecords[idx].claimStatus = status;
+
+                renderRecords(); 
             } catch(e) { alert('核销状态更新失败'); }
         }
 

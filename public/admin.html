@@ -5,22 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NOEY 诺一家具 - 后台中心</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 引入高级线性图标库 -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
-        body { background-color: #F4F4F5; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1A1A1A; }
+        body { background-color: #F9F9F9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1A1A1A; }
         .nav-link { color: #71717A; padding-bottom: 12px; font-size: 14px; letter-spacing: 0.1em; transition: all 0.3s; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 6px; }
         .nav-link:hover { color: #1A1A1A; }
         .nav-link.active { color: #1A1A1A; font-weight: 600; border-bottom: 2px solid #1A1A1A; }
-        .premium-card { background: white; border: 1px solid #E4E4E7; border-radius: 8px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); transition: box-shadow 0.3s; }
-        .premium-card:hover { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02); }
+        .premium-card { background: white; border: 1px solid #EEEEEE; border-radius: 8px; padding: 24px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02); transition: box-shadow 0.3s; }
+        .premium-card:hover { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04); }
         .input-premium { width: 100%; border: 1px solid #E4E4E7; border-radius: 6px; padding: 10px 12px; font-size: 13px; background-color: #FAFAFA; transition: all 0.2s; }
         .input-premium:focus { background-color: #FFFFFF; border-color: #1A1A1A; outline: none; box-shadow: 0 0 0 1px #1A1A1A; }
     </style>
 </head>
 <body class="min-h-screen pb-12">
     
-    <header class="bg-white border-b border-[#EBEBEB] sticky top-0 z-50 shadow-sm">
+    <header class="bg-white border-b border-[#EEEEEE] sticky top-0 z-50 shadow-sm">
         <div class="max-w-[1400px] mx-auto px-6 pt-6 flex justify-between items-end">
             <div>
                 <h1 class="text-xl font-bold tracking-widest mb-6 flex items-center gap-2">
@@ -32,7 +31,7 @@
                     <a href="reward-records.html" class="nav-link"><i class="ph ph-gift text-lg"></i> 中奖流水库</a>
                 </nav>
             </div>
-            <button onclick="logout()" class="mb-6 text-xs text-red-400 hover:text-red-600 tracking-widest uppercase transition flex items-center gap-1 bg-red-50 px-3 py-1.5 rounded-full">
+            <button onclick="logout()" class="mb-6 text-xs text-gray-500 hover:text-black tracking-widest uppercase transition flex items-center gap-1">
                 <i class="ph ph-sign-out"></i> 退出系统
             </button>
         </div>
@@ -47,73 +46,67 @@
             
             <div class="grid grid-cols-1 xl:grid-cols-3 gap-10">
                 <div class="xl:col-span-2 space-y-6">
-                    <!-- 文案设置 -->
                     <div class="grid grid-cols-2 gap-6">
                         <div>
-                            <label class="flex items-center gap-1 text-xs font-bold text-gray-600 mb-2 tracking-widest uppercase"><i class="ph ph-text-t"></i> 活动大标题</label>
+                            <label class="flex items-center gap-1 text-xs font-bold text-gray-500 mb-2 tracking-widest uppercase">活动大标题</label>
                             <input type="text" id="configTitle" class="input-premium">
                         </div>
                         <div>
-                            <label class="flex items-center gap-1 text-xs font-bold text-gray-600 mb-2 tracking-widest uppercase"><i class="ph ph-text-t"></i> 活动副标题</label>
+                            <label class="flex items-center gap-1 text-xs font-bold text-gray-500 mb-2 tracking-widest uppercase">活动副标题</label>
                             <input type="text" id="configSubtitle" class="input-premium">
                         </div>
                     </div>
                     <div>
-                        <label class="flex items-center gap-1 text-xs font-bold text-gray-600 mb-2 tracking-widest uppercase"><i class="ph ph-chat-centered-text"></i> 收款/营销引导话术</label>
+                        <label class="flex items-center gap-1 text-xs font-bold text-gray-500 mb-2 tracking-widest uppercase">收款/营销引导话术</label>
                         <input type="text" id="configPaymentCopy" class="input-premium">
                     </div>
 
-                    <!-- Logo 素材设置 (优化说明文字) -->
-                    <div class="bg-[#F8F8F9] p-6 rounded-lg border border-[#E4E4E7] mt-6">
+                    <div class="bg-[#FAFAFA] p-6 rounded border border-gray-200 mt-6">
                         <div class="flex items-center gap-2 mb-4">
-                            <i class="ph ph-image text-xl text-[#8C6A4F]"></i>
                             <h3 class="text-sm font-bold text-gray-800">Logo 素材链接管理</h3>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div class="bg-white p-4 rounded border border-gray-200">
-                                <label class="block text-xs font-bold text-gray-700 mb-1">彩色主 Logo</label>
-                                <p class="text-[10px] text-gray-400 mb-3 h-8 leading-tight">用于大转盘中心展示。建议使用品牌主色调背景透明的PNG图。</p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-[11px] text-gray-400 mb-1">彩色主 Logo (大转盘中心)</label>
                                 <input type="text" id="logoColorUrl" class="input-premium text-xs" placeholder="http://...">
                             </div>
-                            <div class="bg-white p-4 rounded border border-gray-200">
-                                <label class="block text-xs font-bold text-gray-700 mb-1">深色版 (黑色) Logo</label>
-                                <p class="text-[10px] text-gray-400 mb-3 h-8 leading-tight">用于前台左上角浅色导航栏。建议纯黑文字透明背景。</p>
+                            <div>
+                                <label class="block text-[11px] text-gray-400 mb-1">深色版 Logo (浅色导航栏)</label>
                                 <input type="text" id="logoBlackUrl" class="input-premium text-xs" placeholder="http://...">
                             </div>
-                            <div class="bg-white p-4 rounded border border-gray-200">
-                                <label class="block text-xs font-bold text-gray-700 mb-1">浅色版 (白色) Logo</label>
-                                <p class="text-[10px] text-gray-400 mb-3 h-8 leading-tight">用于前台深色页脚及中奖弹窗。建议纯白文字透明背景。</p>
+                            <div>
+                                <label class="block text-[11px] text-gray-400 mb-1">浅色版 Logo (深色页脚)</label>
                                 <input type="text" id="logoWhiteUrl" class="input-premium text-xs" placeholder="http://...">
                             </div>
                         </div>
-                        <div class="mt-4 pt-4 border-t border-gray-200">
-                             <label class="block text-xs font-bold text-gray-700 mb-1">收款码 / 企微二维码</label>
+                        <div class="mt-4 pt-4 border-t border-gray-100">
+                             <label class="block text-[11px] text-gray-400 mb-1">收款码 / 企微二维码</label>
                              <input type="text" id="configQrCodeUrl" class="input-premium text-xs" placeholder="http://...">
                         </div>
                     </div>
                     
                     <div class="text-right">
-                        <button onclick="saveConfig()" class="bg-[#1A1A1A] text-white px-8 py-3 rounded-lg text-xs font-bold tracking-widest hover:bg-[#8C6A4F] transition shadow-md flex items-center gap-2 ml-auto">
+                        <button onclick="saveConfig()" class="bg-[#1A1A1A] text-white px-8 py-3 rounded text-xs font-bold tracking-widest hover:bg-[#8C6A4F] transition flex items-center gap-2 ml-auto">
                             <i class="ph ph-floppy-disk text-lg"></i> 保存品牌配置
                         </button>
                     </div>
                 </div>
 
-                <div class="border-l border-gray-200 xl:pl-10">
+                <div class="border-l border-gray-100 xl:pl-10">
                     <h3 class="text-sm font-bold text-gray-800 tracking-widest uppercase mb-6 flex items-center gap-2 pb-3 border-b border-gray-100">
-                        <i class="ph ph-shield-check text-green-600 text-lg"></i> 系统安全设置
+                        系统安全设置
                     </h3>
-                    <div class="space-y-5 bg-[#F8F8F9] p-6 rounded-lg border border-[#E4E4E7]">
+                    <div class="space-y-5 bg-[#FAFAFA] p-6 rounded border border-gray-200">
                         <div>
-                            <label class="block text-[11px] font-bold text-gray-500 mb-2 tracking-widest uppercase"><i class="ph ph-user"></i> 管理员账号</label>
+                            <label class="block text-[11px] font-bold text-gray-500 mb-2 tracking-widest uppercase">管理员账号</label>
                             <input type="text" id="adminPhoneInput" class="input-premium">
                         </div>
                         <div>
-                            <label class="block text-[11px] font-bold text-gray-500 mb-2 tracking-widest uppercase"><i class="ph ph-key"></i> 修改密码</label>
+                            <label class="block text-[11px] font-bold text-gray-500 mb-2 tracking-widest uppercase">修改密码</label>
                             <input type="text" id="adminPasswordInput" class="input-premium" placeholder="留空则不修改">
                         </div>
-                        <button onclick="saveAdminAccount()" class="w-full bg-white border border-[#1A1A1A] text-[#1A1A1A] px-4 py-2.5 rounded-lg text-xs font-bold tracking-widest hover:bg-[#1A1A1A] hover:text-white transition flex items-center justify-center gap-2">
-                            <i class="ph ph-arrows-clockwise"></i> 更新安全凭证
+                        <button onclick="saveAdminAccount()" class="w-full bg-white border border-[#1A1A1A] text-[#1A1A1A] px-4 py-2.5 rounded text-xs font-bold tracking-widest hover:bg-[#1A1A1A] hover:text-white transition">
+                            更新安全凭证
                         </button>
                     </div>
                 </div>
@@ -122,41 +115,50 @@
 
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
             
-            <!-- 用户库管理 (极简版) -->
-            <div class="premium-card flex flex-col h-[650px]">
+            <!-- [优化] 用户管理模块 (支持搜索与分页) -->
+            <div class="premium-card flex flex-col h-[700px]">
                 <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
                     <div>
-                        <h2 class="text-sm font-bold tracking-widest uppercase flex items-center gap-2">
-                            <i class="ph ph-users-three text-[#8C6A4F] text-lg"></i> 抽奖权限管理库
+                        <h2 class="text-sm font-bold tracking-widest uppercase flex items-center gap-2 text-gray-800">
+                            抽奖权限管理库
                         </h2>
-                        <p class="text-[11px] text-gray-400 mt-1">控制用户抽奖次数，客户详情请前往 <a href="customer-management.html" class="text-[#8C6A4F] underline">客户 CRM</a></p>
+                        <p class="text-[11px] text-gray-400 mt-1">控制用户抽奖次数</p>
+                    </div>
+                    <!-- 搜索框 -->
+                    <div class="relative">
+                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="userSearch" oninput="handleUserSearch(this.value)" placeholder="搜索手机号..." class="pl-9 pr-4 py-1.5 text-xs border border-gray-200 rounded bg-gray-50 focus:bg-white focus:outline-none focus:border-black transition w-48">
                     </div>
                 </div>
-                <div id="usersList" class="flex-grow overflow-y-auto space-y-3 pr-2"></div>
-                <div class="mt-4 pt-4 border-t border-gray-100 flex justify-end">
-                    <button onclick="saveUsers()" class="bg-[#1A1A1A] text-white px-6 py-2.5 rounded-lg text-xs font-bold tracking-widest hover:bg-[#8C6A4F] transition flex items-center gap-2">
-                        <i class="ph ph-cloud-arrow-up text-lg"></i> 同步抽奖次数
-                    </button>
+                
+                <div id="usersList" class="flex-grow overflow-y-auto space-y-3 pr-2">
+                    <!-- JS 渲染列表 -->
+                </div>
+
+                <!-- 分页栏 -->
+                <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
+                    <div class="text-xs text-gray-400" id="userPageInfo"></div>
+                    <div class="flex gap-2" id="userPagination"></div>
                 </div>
             </div>
 
             <!-- 奖品陈列管理 -->
-            <div class="premium-card flex flex-col h-[650px]">
+            <div class="premium-card flex flex-col h-[700px]">
                 <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
                     <div>
-                        <h2 class="text-sm font-bold tracking-widest uppercase flex items-center gap-2">
-                            <i class="ph ph-gift text-[#8C6A4F] text-lg"></i> 高级奖品陈列配置
+                        <h2 class="text-sm font-bold tracking-widest uppercase flex items-center gap-2 text-gray-800">
+                            高级奖品陈列配置
                         </h2>
                         <p class="text-[11px] text-gray-400 mt-1">管理大转盘上的奖品内容与中奖权重</p>
                     </div>
-                    <button onclick="addPrize()" class="border border-gray-300 text-gray-700 text-xs px-3 py-1.5 rounded-lg hover:bg-gray-50 flex items-center gap-1 font-medium transition">
-                        <i class="ph ph-plus"></i> 新增奖品
+                    <button onclick="addPrize()" class="border border-gray-300 text-gray-700 text-xs px-3 py-1.5 rounded hover:bg-gray-50 flex items-center gap-1 transition">
+                        <i class="ph ph-plus"></i> 新增
                     </button>
                 </div>
                 <div id="prizesList" class="flex-grow overflow-y-auto space-y-3 pr-2"></div>
                 <div class="mt-4 pt-4 border-t border-gray-100 flex justify-end">
-                    <button onclick="savePrizes()" class="bg-[#1A1A1A] text-white px-6 py-2.5 rounded-lg text-xs font-bold tracking-widest hover:bg-[#8C6A4F] transition flex items-center gap-2">
-                        <i class="ph ph-arrows-clockwise text-lg"></i> 同步奖品池
+                    <button onclick="savePrizes()" class="bg-[#1A1A1A] text-white px-6 py-2.5 rounded text-xs font-bold tracking-widest hover:bg-[#8C6A4F] transition">
+                        同步奖品池
                     </button>
                 </div>
             </div>
@@ -167,11 +169,16 @@
         const token = localStorage.getItem('token');
         if (!token) window.location.href = '/login.html';
         const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
+        
         let currentData = { prizes: [], users: [] };
+        
+        // 分页与搜索状态
+        let userSearchQuery = "";
+        let userCurrentPage = 1;
+        const userPageSize = 10;
 
         async function init() {
             try {
-                // 加载配置
                 const cfgRes = await fetch('/api/config');
                 const config = await cfgRes.json();
                 document.getElementById('configTitle').value = config.title || '';
@@ -182,7 +189,6 @@
                 document.getElementById('logoBlackUrl').value = config.logoBlackUrl || '';
                 document.getElementById('logoWhiteUrl').value = config.logoWhiteUrl || '';
 
-                // 加载用户和奖品 (使用简化版的 API)
                 const res = await fetch('/api/admin/users', { headers });
                 if (res.status === 403) return logout();
                 currentData = await res.json();
@@ -206,16 +212,16 @@
 
         function renderPrizes() {
             document.getElementById('prizesList').innerHTML = currentData.prizes.map((p, i) => `
-                <div class="flex gap-4 items-center bg-[#FDFDFD] p-4 border border-[#E4E4E7] rounded-lg hover:shadow-sm transition-shadow group">
+                <div class="flex gap-4 items-center bg-[#FAFAFA] p-4 border border-[#EEEEEE] rounded hover:shadow-sm transition-shadow group">
                     <div class="flex-1">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">奖品名称</label>
+                        <label class="text-[10px] text-gray-400 mb-1 block">奖品名称</label>
                         <input type="text" value="${p.name}" onchange="currentData.prizes[${i}].name=this.value" class="w-full border-b border-gray-200 py-1 text-sm bg-transparent focus:border-[#8C6A4F] focus:outline-none transition">
                     </div>
                     <div class="w-24">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1 block">出奖权重</label>
+                        <label class="text-[10px] text-gray-400 mb-1 block">权重</label>
                         <input type="number" value="${p.weight}" onchange="currentData.prizes[${i}].weight=Number(this.value)" class="w-full border-b border-gray-200 py-1 text-sm bg-transparent text-center focus:border-[#8C6A4F] focus:outline-none transition">
                     </div>
-                    <button onclick="currentData.prizes.splice(${i}, 1); renderPrizes()" class="mt-4 text-gray-400 hover:text-red-500 bg-gray-50 hover:bg-red-50 p-2 rounded-full transition opacity-50 group-hover:opacity-100" title="删除奖品">
+                    <button onclick="currentData.prizes.splice(${i}, 1); renderPrizes()" class="mt-4 text-gray-300 hover:text-red-500 transition" title="删除奖品">
                         <i class="ph ph-trash text-lg"></i>
                     </button>
                 </div>
@@ -224,42 +230,75 @@
         function addPrize() { currentData.prizes.push({ name: "NEW GIFT - 新奖品", weight: 10 }); renderPrizes(); }
         async function savePrizes() { await fetch('/api/admin/prizes', { method: 'POST', headers, body: JSON.stringify(currentData.prizes) }); alert('奖品库已同步至大转盘！'); }
 
+        // [新增] 搜索与分页渲染逻辑
+        function handleUserSearch(query) {
+            userSearchQuery = query.trim();
+            userCurrentPage = 1;
+            renderUsers();
+        }
+
         function renderUsers() {
-            document.getElementById('usersList').innerHTML = currentData.users.map((u, i) => `
-                <div class="flex items-center justify-between p-4 border border-[#E4E4E7] rounded-lg bg-white hover:border-[#8C6A4F] hover:shadow-sm transition-all group">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
-                            <i class="ph ph-user text-xl"></i>
-                        </div>
-                        <div>
-                            <div class="font-bold text-sm tracking-widest text-gray-800">${u.phone}</div>
-                            <div class="text-[10px] text-gray-400 tracking-wider mt-1 flex items-center gap-1">
-                                <i class="ph ph-clock"></i> 注册: ${u.registerTime || '未知'}
-                            </div>
+            // 过滤
+            let filteredUsers = currentData.users;
+            if (userSearchQuery) {
+                filteredUsers = filteredUsers.filter(u => u.phone.includes(userSearchQuery));
+            }
+
+            // 分页
+            const total = filteredUsers.length;
+            const totalPages = Math.ceil(total / userPageSize) || 1;
+            if (userCurrentPage > totalPages) userCurrentPage = totalPages;
+            
+            const start = (userCurrentPage - 1) * userPageSize;
+            const paginatedUsers = filteredUsers.slice(start, start + userPageSize);
+
+            // 渲染列表
+            document.getElementById('usersList').innerHTML = paginatedUsers.map(u => `
+                <div class="flex items-center justify-between p-4 border border-[#EEEEEE] rounded bg-white hover:border-[#8C6A4F]/50 transition-all">
+                    <div>
+                        <div class="font-bold text-sm text-gray-800">${u.phone}</div>
+                        <div class="text-[10px] text-gray-400 mt-1 flex gap-3">
+                            <span>注册: ${u.registerTime ? u.registerTime.split(' ')[0] : '-'}</span>
+                            <span>已中奖: ${u.rewards ? u.rewards.length : 0} 次</span>
                         </div>
                     </div>
-                    <div class="flex gap-6 items-center">
+                    <div class="flex gap-4 items-center">
                         <div class="flex flex-col items-center">
-                            <span class="text-[10px] font-bold text-gray-400 tracking-widest uppercase mb-1">抽奖机会</span>
-                            <div class="flex items-center bg-gray-50 border border-gray-200 rounded overflow-hidden">
-                                <input type="number" value="${u.chances}" onchange="currentData.users[${i}].chances=Number(this.value)" class="w-12 py-1 text-sm text-center focus:outline-none focus:bg-white bg-transparent font-bold text-[#8C6A4F]">
+                            <span class="text-[10px] text-gray-400 mb-1">抽奖机会</span>
+                            <div class="border border-gray-200 rounded">
+                                <input type="number" value="${u.chances}" onchange="updateUserChanceAPI('${u.phone}', this.value)" class="w-12 py-1 text-sm text-center focus:outline-none focus:bg-gray-50 bg-transparent font-bold text-[#8C6A4F]">
                             </div>
                         </div>
-                        <button onclick="resetUserRewards('${u.phone}')" class="text-xs text-red-500 hover:text-white border border-red-200 hover:bg-red-500 px-3 py-1.5 rounded-md tracking-widest transition flex items-center gap-1 opacity-60 group-hover:opacity-100">
-                            <i class="ph ph-eraser"></i> 清空奖品
+                        <button onclick="resetUserRewards('${u.phone}')" class="text-xs text-gray-400 hover:text-red-500 border border-gray-200 hover:border-red-200 px-2 py-1.5 rounded transition">
+                            清空
                         </button>
                     </div>
                 </div>
-            `).join('');
+            `).join('') || `<div class="text-center text-xs text-gray-400 py-10">未找到匹配的客户</div>`;
+
+            // 渲染分页控件
+            document.getElementById('userPageInfo').innerText = `共 ${total} 人，第 ${userCurrentPage}/${totalPages} 页`;
+            document.getElementById('userPagination').innerHTML = `
+                <button onclick="userCurrentPage--; renderUsers()" ${userCurrentPage === 1 ? 'disabled' : ''} class="px-2 py-1 border rounded text-xs disabled:opacity-30">上一页</button>
+                <button onclick="userCurrentPage++; renderUsers()" ${userCurrentPage === totalPages ? 'disabled' : ''} class="px-2 py-1 border rounded text-xs disabled:opacity-30">下一页</button>
+            `;
         }
 
-        async function saveUsers() { await fetch('/api/admin/users', { method: 'POST', headers, body: JSON.stringify(currentData.users) }); alert('抽奖次数更新成功！'); }
+        // [新增] 独立调用 API 更新次数，避免分页状态下保存全部数据导致错乱
+        async function updateUserChanceAPI(phone, newChance) {
+            try {
+                await fetch(`/api/admin/users/${phone}/chances`, { method: 'PUT', headers, body: JSON.stringify({ chances: Number(newChance) }) });
+                // 同步本地数据状态
+                const index = currentData.users.findIndex(u => u.phone === phone);
+                if(index > -1) currentData.users[index].chances = Number(newChance);
+            } catch(e) { alert('更新次数失败'); }
+        }
 
         async function resetUserRewards(phone) {
-            if(!confirm(`确定要清空用户 ${phone} 的所有中奖记录吗？该操作不可逆，且同步删除独立中奖流水。`)) return;
+            if(!confirm(`确定要清空 ${phone} 的所有中奖记录？`)) return;
             await fetch('/api/admin/reset-rewards', { method: 'POST', headers, body: JSON.stringify({ phone }) });
-            alert('该用户奖品已重置');
-            init(); // 刷新列表
+            alert('已重置');
+            init(); 
         }
 
         async function saveAdminAccount() {
@@ -267,7 +306,7 @@
             const password = document.getElementById('adminPasswordInput').value;
             if(!phone) return;
             await fetch('/api/admin/account', { method: 'POST', headers, body: JSON.stringify({ phone, password }) });
-            alert('系统安全凭证已更新，请牢记您的新密码。');
+            alert('凭证已更新。');
             if(phone !== localStorage.getItem('token')) localStorage.setItem('token', phone);
         }
 

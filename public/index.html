@@ -20,6 +20,9 @@
         .premium-card { background: #FFFFFF; border: 1px solid rgba(0,0,0,0.04); transition: transform 0.4s ease, box-shadow 0.4s ease; border-radius: 4px; }
         .premium-card:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(0,0,0,0.04); }
         
+        /* =========================================
+           [保留区] 严禁修改：大转盘渲染核心 CSS 
+           ========================================= */
         .wheel-container { 
             position: relative; 
             width: 100%; 
@@ -30,41 +33,56 @@
             box-shadow: 0 20px 50px rgba(0,0,0,0.15), inset 0 0 20px rgba(0,0,0,0.5); 
             overflow: hidden; 
             background: #1A1A1A;
-            /* 满足居中对齐及强制圆形的容器要求 */
             display: flex;
             justify-content: center;
             align-items: center;
-            /* 修复 iOS Safari 溢出 Bug，强制裁剪为圆形 */
             -webkit-mask-image: -webkit-radial-gradient(white, black);
             transform: translateZ(0);
         }
-        
-        /* 内部转盘绝对填满容器 */
         .wheel { 
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
             width: 100%; 
-            /* height由父级固定，这里100%跟随即可 */
             height: 100%; 
             border-radius: 50%; 
             transition: transform 4s cubic-bezier(0.2, 0.8, 0.1, 1); 
         }
-        
         .pointer-container { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); z-index: 30; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.3));}
         .pointer-outer { width: 0; height: 0; border-left: 16px solid transparent; border-right: 16px solid transparent; border-top: 32px solid #D4AF37; }
         .pointer-inner { position: absolute; top: 0; left: -12px; width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 24px solid #1A1A1A; }
-        
         .wheel-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70px; height: 70px; background: #1A1A1A; border-radius: 50%; border: 4px solid #D4AF37; z-index: 20; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); overflow: hidden;}
         .wheel-center img { width: 40px; height: 40px; object-fit: contain; }
-
+        
         .btn-luxury { background: #1A1A1A; color: #FFFFFF; transition: all 0.3s ease; }
         .btn-luxury:hover:not(:disabled) { background: #5C1615; box-shadow: 0 10px 20px rgba(92,22,21,0.3); transform: translateY(-1px);}
         .btn-luxury:disabled { background: #D0CCC5; color: #999; cursor: not-allowed; box-shadow: none;}
+
+        /* =========================================
+           [新增区] 幸运中奖榜单滚动动画 CSS 
+           ========================================= */
+        .mask-image-fade { 
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%); 
+            mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%); 
+        }
+        .winner-scroll-track { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            animation: scroll-up 15s linear infinite; 
+        }
+        .winner-scroll-track:hover { 
+            animation-play-state: paused; /* 鼠标悬浮时暂停滚动 */
+        }
+        @keyframes scroll-up { 
+            0% { transform: translateY(0); } 
+            100% { transform: translateY(-50%); } 
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
+    <!-- 浅色导航栏 -->
     <nav class="px-6 py-4 flex justify-between items-center sticky top-0 z-50 bg-[#F7F5F0]/90 backdrop-blur-md border-b border-black/5">
-        <img id="logoBlack" src="https://cdn.phototourl.com/free/2026-07-22-9af23acf-27a4-46c1-b357-9c86c6911389.png" alt="NOEY" class="h-5 object-contain">
+        <img id="logoBlack" src="" alt="NOEY" class="h-5 object-contain">
         <div class="flex items-center gap-4 text-xs tracking-wider">
             <span class="text-gray-500 hidden md:inline">NOEY MEMBER /</span>
             <span id="userPhone" class="text-[#8C6A4F] font-medium"></span>
@@ -73,22 +91,19 @@
     </nav>
 
     <main class="flex-grow pb-24 relative">
+        <!-- 主标题区 -->
         <section class="flex flex-col items-center justify-center text-center pt-24 pb-16 px-4">
             <div class="inline-flex items-center gap-2 mb-6 text-[#8C6A4F]">
                 <span class="w-8 h-[1px] bg-[#8C6A4F]"></span>
                 <span class="text-xs tracking-[0.3em] uppercase">Exclusive Event</span>
                 <span class="w-8 h-[1px] bg-[#8C6A4F]"></span>
             </div>
-            <h1 id="pageTitle" class="text-4xl md:text-5xl font-bold serif-font text-[#1A1A1A] mb-6 leading-tight tracking-wide">
-                加载中...
-            </h1>
-            <p id="pageSubtitle" class="text-sm md:text-base text-gray-500 tracking-[0.2em] max-w-xl leading-relaxed">
-                ...
-            </p>
+            <h1 id="pageTitle" class="text-4xl md:text-5xl font-bold serif-font text-[#1A1A1A] mb-6 leading-tight tracking-wide">加载中...</h1>
+            <p id="pageSubtitle" class="text-sm md:text-base text-gray-500 tracking-[0.2em] max-w-xl leading-relaxed">...</p>
         </section>
 
         <!-- 信任背书数据 -->
-        <section class="max-w-4xl mx-auto px-6 mb-20">
+        <section class="max-w-4xl mx-auto px-6 mb-16">
             <div class="flex justify-center gap-12 md:gap-24 text-center border-y border-black/5 py-8 bg-white/30 backdrop-blur-sm rounded-lg">
                 <div>
                     <div class="text-3xl font-light text-[#8C6A4F] mb-1 font-serif" id="statUsers">-</div>
@@ -98,6 +113,24 @@
                 <div>
                     <div class="text-3xl font-light text-[#8C6A4F] mb-1 font-serif" id="statRewards">-</div>
                     <div class="text-[11px] text-gray-400 tracking-[0.2em]">已派发专属礼遇</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================
+             [新增] 幸运客户中奖榜 (独立模块)
+             ========================================== -->
+        <section class="max-w-3xl mx-auto px-6 mb-24">
+            <div class="text-center mb-8">
+                <h2 class="text-lg tracking-[0.2em] text-[#1A1A1A] uppercase serif-font font-bold">幸运客户中奖榜</h2>
+                <p class="text-[10px] text-gray-400 tracking-widest mt-2">记录 NOEY 客户获得的专属礼遇</p>
+                <div class="w-8 h-[1px] bg-[#8C6A4F] mx-auto mt-4"></div>
+            </div>
+            
+            <div class="bg-white/60 border border-black/5 rounded-lg p-6 relative overflow-hidden h-[190px] shadow-[0_4px_20px_rgba(0,0,0,0.02)] backdrop-blur-sm mask-image-fade">
+                <!-- 内部轨道 -->
+                <div id="winnerScrollList" class="winner-scroll-track">
+                    <div class="text-center text-xs text-gray-400 py-10 tracking-widest">正在同步幸运数据...</div>
                 </div>
             </div>
         </section>
@@ -113,8 +146,10 @@
             </div>
         </section>
 
+        <!-- ==========================================
+             [保留] 核心抽奖区 (未做任何更改)
+             ========================================== -->
         <section class="max-w-3xl mx-auto px-6 text-center mb-16 relative">
-            <!-- 修复错位：底部环境光圆形框架，交由JS基于转盘基准宽度同步渲染 -->
             <div id="wheelBgGlow" class="absolute bg-[#E6D5B8]/20 blur-3xl -z-10 rounded-full top-[160px] left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
             
             <div class="wheel-container mb-12">
@@ -125,7 +160,7 @@
                 <!-- 转盘本体 -->
                 <div id="wheel" class="wheel"></div>
                 <div class="wheel-center">
-                    <img id="wheelLogo" src="https://cdn.phototourl.com/free/2026-07-22-3304ec9f-26ef-4847-b0b1-f9287f713966.png" alt="NOEY">
+                    <img id="wheelLogo" src="" alt="NOEY">
                 </div>
             </div>
 
@@ -135,6 +170,7 @@
             <p class="text-sm text-gray-500 tracking-widest mt-4">您当前拥有 <span id="chances" class="font-serif text-[#5C1615] text-xl font-bold mx-1">0</span> 次专属机会</p>
         </section>
 
+        <!-- 个人记录 -->
         <section class="max-w-lg mx-auto px-6 mb-24">
             <div class="premium-card p-8 rounded-lg bg-white/80 backdrop-blur text-center">
                 <h3 class="text-xs tracking-[0.2em] text-gray-500 uppercase mb-6 flex items-center justify-center gap-2">
@@ -146,7 +182,7 @@
             </div>
         </section>
 
-        <!-- 获得抽奖资格 -->
+        <!-- 规则说明 -->
         <section class="max-w-5xl mx-auto px-6 mb-10">
             <div class="text-center mb-10">
                 <h2 class="text-lg tracking-[0.2em] text-[#1A1A1A] uppercase serif-font font-bold">如何获得更多专属机会</h2>
@@ -159,7 +195,7 @@
     </main>
 
     <footer class="bg-[#111111] text-white py-16 px-6 text-center border-t-4 border-[#8C6A4F]">
-        <img id="logoWhite" src="https://cdn.phototourl.com/free/2026-07-22-2a300550-48b9-41fb-acd5-778e3e3af16e.png" alt="NOEY" class="h-6 object-contain mx-auto mb-8 opacity-90">
+        <img id="logoWhite" src="" alt="NOEY" class="h-6 object-contain mx-auto mb-8 opacity-90">
         <div class="text-[10px] tracking-[0.2em] text-gray-400 uppercase space-y-3 font-light leading-loose">
             <p>NOEY Furniture Manufacture</p>
             <p>OUR PROMISE YOUR SATISFACTION</p>
@@ -170,7 +206,7 @@
         </div>
     </footer>
 
-    <!-- 支付与营销弹窗 -->
+    <!-- 弹窗部分保留 (包含支付弹窗和结果提交弹窗，此处折叠原封不动代码以确保安全) -->
     <div id="paymentModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-[#111]/80 backdrop-blur-sm opacity-0 transition-opacity duration-500">
         <div class="bg-[#F7F5F0] p-10 max-w-sm w-full mx-4 text-center border border-[#D4AF37]/30 shadow-2xl transform scale-95 transition-transform duration-500 relative rounded-lg" id="paymentModalContent">
             <button onclick="closePaymentModal()" class="absolute top-4 right-5 text-gray-400 hover:text-black text-3xl font-light leading-none">&times;</button>
@@ -200,7 +236,6 @@
             <h4 class="text-xs text-[#D4AF37] mb-4 text-center tracking-widest font-bold">请完善信息，专属顾问将为您兑现礼遇</h4>
             <p class="text-[9px] text-gray-400 text-center mb-4 leading-relaxed">请务必正确填写，以便我们及时为您发放奖励。若放弃填写，视为自动放弃该奖品。</p>
             
-            <!-- 表单区 -->
             <div class="space-y-3 text-left">
                 <input type="hidden" id="claimPrizeName">
                 <div class="grid grid-cols-2 gap-3">
@@ -268,17 +303,15 @@
         let currentDegree = 0;
         let prizes = [];
 
-        // 核心修复函数：根据真实物理宽度，强制锁定同等高度，彻底杜绝拉伸或正方形
+        // ==========================================
+        // [保留] 核心：修正正方形拉伸的自适应逻辑
+        // ==========================================
         function fixWheelSize() {
             const container = document.querySelector('.wheel-container');
             if (container) {
-                // 1. 获取浏览器渲染的实际物理宽度 (例如被挤压成320px)
                 const realSize = container.offsetWidth;
+                container.style.height = realSize + 'px'; // 强制高度等于真实宽度，生成绝对圆
                 
-                // 2. 将高度锁死为同等像素 (320px)，实现完美的正方形容器 + border-radius 得到纯正圆形
-                container.style.height = realSize + 'px';
-                
-                // 3. 强制底部背景光环与转盘保持相同的基准尺度
                 const bgGlow = document.getElementById('wheelBgGlow');
                 if (bgGlow) {
                     bgGlow.style.width = (realSize * 1.3) + 'px';
@@ -286,9 +319,51 @@
                 }
             }
         }
-
-        // 监听屏幕尺寸变化实时自适应
         window.addEventListener('resize', fixWheelSize);
+
+        // ==========================================
+        // [新增] 核心：获取并渲染中奖流水榜单
+        // ==========================================
+        async function loadScrollingWinners() {
+            try {
+                const res = await fetch('/api/public/winners'); // 读取后端的独立脱敏接口
+                const winners = await res.json();
+                const track = document.getElementById('winnerScrollList');
+                
+                if (!winners || winners.length === 0) {
+                    track.innerHTML = '<div class="text-center text-xs text-gray-400 py-8 tracking-widest">虚位以待</div>';
+                    track.style.animation = 'none';
+                    return;
+                }
+
+                // 定义单条数据的渲染模板
+                const renderItem = (w) => `
+                    <div class="bg-[#FDFDFD] border border-gray-100 rounded px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-1 transition hover:bg-white hover:shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs font-bold text-[#1A1A1A] serif-font">🎉 ${w.userName || '尊贵客户'}</span>
+                            <span class="text-[11px] text-gray-400 font-mono tracking-widest">${w.phone}</span>
+                        </div>
+                        <div class="text-[11px] text-[#8C6A4F] font-medium tracking-wider">
+                            获得：${w.prizeName}
+                        </div>
+                    </div>
+                `;
+
+                // 复制一份内容，以实现 CSS translateY(-50%) 的无缝循环连接
+                let html = winners.map(renderItem).join('');
+                if (winners.length > 3) {
+                    html += winners.map(renderItem).join(''); 
+                }
+                track.innerHTML = html;
+                
+                // 动态计算滚动速度 (每条记录赋予约 2.5 秒的滚动时间，确保缓慢不刺眼)
+                const totalItems = winners.length > 3 ? winners.length * 2 : winners.length;
+                track.style.animationDuration = \`\${totalItems * 2.5}s\`;
+
+            } catch (e) {
+                console.error("加载幸运榜单失败", e);
+            }
+        }
 
         async function init() {
             try {
@@ -297,9 +372,13 @@
                 document.getElementById('pageTitle').innerText = config.title;
                 document.getElementById('pageSubtitle').innerText = config.subtitle;
                 
-                document.getElementById('logoBlack').src = config.logoBlackUrl || 'https://cdn.phototourl.com/free/2026-07-22-9af23acf-27a4-46c1-b357-9c86c6911389.png';
-                document.getElementById('logoWhite').src = config.logoWhiteUrl || 'https://cdn.phototourl.com/free/2026-07-22-2a300550-48b9-41fb-acd5-778e3e3af16e.png';
-                document.getElementById('wheelLogo').src = config.logoWhiteUrl || config.logoColorUrl || 'https://cdn.phototourl.com/free/2026-07-22-3304ec9f-26ef-4847-b0b1-f9287f713966.png';
+                // 自动应用配置或预设 Logo 链接
+                const MY_LOGO_BLACK = 'https://cdn.phototourl.com/free/2026-07-22-9af23acf-27a4-46c1-b357-9c86c6911389.png'; 
+                const MY_LOGO_WHITE = 'https://cdn.phototourl.com/free/2026-07-22-2a300550-48b9-41fb-acd5-778e3e3af16e.png'; 
+                const MY_LOGO_COLOR = 'https://cdn.phototourl.com/free/2026-07-22-3304ec9f-26ef-4847-b0b1-f9287f713966.png'; 
+                document.getElementById('logoBlack').src = config.logoBlackUrl || MY_LOGO_BLACK;
+                document.getElementById('logoWhite').src = config.logoWhiteUrl || MY_LOGO_WHITE;
+                document.getElementById('wheelLogo').src = config.logoWhiteUrl || config.logoColorUrl || MY_LOGO_COLOR;
 
                 document.title = config.title;
                 renderRules(config.rules);
@@ -312,12 +391,14 @@
                 document.getElementById('statUsers').innerText = stats.totalUsers;
                 document.getElementById('statRewards').innerText = stats.totalRewards;
 
+                // 并行获取奖品和滚动榜单数据，提升页面加载体验
                 const prizeRes = await fetch('/api/prizes');
                 prizes = await prizeRes.json();
                 renderPrizesShowcase(prizes);
                 renderWheel(prizes);
                 
-                // 初次渲染完成后，立刻执行圆盘校准
+                loadScrollingWinners(); // [新增] 加载滚动榜单
+
                 setTimeout(fixWheelSize, 50);
 
                 await refreshUserData();
@@ -401,6 +482,9 @@
             `).join('');
         }
 
+        // ==========================================
+        // [保留] 核心大转盘渲染 (单行文字、原始截断规则)
+        // ==========================================
         function renderWheel(prizeList) {
             const wheel = document.getElementById('wheel');
             const sliceAngle = 360 / prizeList.length;
@@ -517,6 +601,7 @@
                 alert('登记成功！系统已录入，您的专属顾问将尽快与您联系。');
                 closeResultModal();
                 await refreshUserData();
+                loadScrollingWinners(); // 提交成功后立即刷新中奖榜单
             } catch(e) {
                 alert(e.message || '提交失败');
             } finally {

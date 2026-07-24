@@ -7,52 +7,62 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
-        /* 撤销了 overflow-x: hidden 等强行限制宽度的属性 */
-        body { background-color: #F7F5F0; font-family: 'Inter', -apple-system, sans-serif; color: #1A1A1A; -webkit-font-smoothing: antialiased; }
+        * { box-sizing: border-box; }
+        body { 
+            background-color: #F7F5F0; 
+            font-family: 'Inter', -apple-system, sans-serif; 
+            color: #1A1A1A; 
+            -webkit-font-smoothing: antialiased; 
+            overflow-x: hidden; /* 防止移动端横向拉伸 */
+        }
         .serif-font { font-family: 'Noto Serif SC', serif; }
-        .accent-color { color: #8C6A4F; }
         
         .premium-card { background: #FFFFFF; border: 1px solid rgba(0,0,0,0.04); transition: transform 0.4s ease, box-shadow 0.4s ease; border-radius: 4px; }
         .premium-card:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(0,0,0,0.04); }
         
-        /* [已恢复] 赌场级高感官大转盘 (原始固定尺寸与绝对圆形) */
-        .wheel-container { position: relative; width: 340px; height: 340px; margin: 0 auto; border-radius: 50%; border: 8px solid #1A1A1A; box-shadow: 0 20px 50px rgba(0,0,0,0.15), inset 0 0 20px rgba(0,0,0,0.5); overflow: hidden; background: #1A1A1A;}
-        .wheel { width: 100%; height: 100%; border-radius: 50%; transition: transform 4s cubic-bezier(0.2, 0.8, 0.1, 1); }
+        .wheel-container { 
+            position: relative; 
+            width: 100%; 
+            max-width: 340px; 
+            margin: 0 auto; 
+            border-radius: 50%; 
+            border: 8px solid #1A1A1A; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15), inset 0 0 20px rgba(0,0,0,0.5); 
+            overflow: hidden; 
+            background: #1A1A1A;
+            /* 满足居中对齐及强制圆形的容器要求 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* 修复 iOS Safari 溢出 Bug，强制裁剪为圆形 */
+            -webkit-mask-image: -webkit-radial-gradient(white, black);
+            transform: translateZ(0);
+        }
         
-        /* [已恢复] 奢华指针 (恢复原始大小与位置) */
+        /* 内部转盘绝对填满容器 */
+        .wheel { 
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%; 
+            /* height由父级固定，这里100%跟随即可 */
+            height: 100%; 
+            border-radius: 50%; 
+            transition: transform 4s cubic-bezier(0.2, 0.8, 0.1, 1); 
+        }
+        
         .pointer-container { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); z-index: 30; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.3));}
         .pointer-outer { width: 0; height: 0; border-left: 16px solid transparent; border-right: 16px solid transparent; border-top: 32px solid #D4AF37; }
         .pointer-inner { position: absolute; top: 0; left: -12px; width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 24px solid #1A1A1A; }
         
-        /* [已恢复] 转盘中心 Logo 区 (恢复固定尺寸) */
         .wheel-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70px; height: 70px; background: #1A1A1A; border-radius: 50%; border: 4px solid #D4AF37; z-index: 20; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); overflow: hidden;}
         .wheel-center img { width: 40px; height: 40px; object-fit: contain; }
 
         .btn-luxury { background: #1A1A1A; color: #FFFFFF; transition: all 0.3s ease; }
         .btn-luxury:hover:not(:disabled) { background: #5C1615; box-shadow: 0 10px 20px rgba(92,22,21,0.3); transform: translateY(-1px);}
         .btn-luxury:disabled { background: #D0CCC5; color: #999; cursor: not-allowed; box-shadow: none;}
-
-        /* 中奖滚动展示动画 (保留第二阶段新增的优秀功能) */
-        .scroller-mask {
-            -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
-            mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
-            overflow: hidden;
-            height: 160px; 
-        }
-        .scroller-content {
-            display: flex;
-            flex-direction: column;
-            animation: scrollVertical 25s linear infinite;
-        }
-        .scroller-content:hover { animation-play-state: paused; }
-        @keyframes scrollVertical {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(-50%); } 
-        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
-    <!-- 浅色导航栏 -->
     <nav class="px-6 py-4 flex justify-between items-center sticky top-0 z-50 bg-[#F7F5F0]/90 backdrop-blur-md border-b border-black/5">
         <img id="logoBlack" src="https://cdn.phototourl.com/free/2026-07-22-9af23acf-27a4-46c1-b357-9c86c6911389.png" alt="NOEY" class="h-5 object-contain">
         <div class="flex items-center gap-4 text-xs tracking-wider">
@@ -62,9 +72,8 @@
         </div>
     </nav>
 
-    <main class="flex-grow pb-24 overflow-hidden">
-        <!-- 1. 活动主题视觉区域 -->
-        <section class="flex flex-col items-center justify-center text-center pt-24 pb-12 px-4">
+    <main class="flex-grow pb-24 relative">
+        <section class="flex flex-col items-center justify-center text-center pt-24 pb-16 px-4">
             <div class="inline-flex items-center gap-2 mb-6 text-[#8C6A4F]">
                 <span class="w-8 h-[1px] bg-[#8C6A4F]"></span>
                 <span class="text-xs tracking-[0.3em] uppercase">Exclusive Event</span>
@@ -78,35 +87,42 @@
             </p>
         </section>
 
-        <!-- 2. 实时中奖滚动展示 (保留第二阶段的功能) -->
-        <section class="max-w-4xl mx-auto px-6 mb-20 w-full">
-            <div class="bg-white/40 backdrop-blur-sm rounded-xl border border-[#E6D5B8]/40 p-8 shadow-sm">
-                <div class="text-center mb-6">
-                    <h2 class="text-sm tracking-[0.3em] text-[#8C6A4F] uppercase serif-font font-bold">幸运客户礼遇榜</h2>
-                    <div class="w-8 h-[1px] bg-[#8C6A4F]/50 mx-auto mt-3"></div>
+        <!-- 信任背书数据 -->
+        <section class="max-w-4xl mx-auto px-6 mb-20">
+            <div class="flex justify-center gap-12 md:gap-24 text-center border-y border-black/5 py-8 bg-white/30 backdrop-blur-sm rounded-lg">
+                <div>
+                    <div class="text-3xl font-light text-[#8C6A4F] mb-1 font-serif" id="statUsers">-</div>
+                    <div class="text-[11px] text-gray-400 tracking-[0.2em]">已尊享定制客户</div>
                 </div>
-                <div class="scroller-mask relative">
-                    <div id="scrollerEmpty" class="absolute inset-0 flex flex-col items-center justify-center text-gray-400 text-xs tracking-widest gap-2">
-                        <span>目前共有 <strong id="statUsers" class="text-[#8C6A4F] font-serif text-lg mx-1">-</strong> 位客户参与</span>
-                        <span>累计派发 <strong id="statRewards" class="text-[#8C6A4F] font-serif text-lg mx-1">-</strong> 份致臻礼品</span>
-                    </div>
-                    <div id="scrollerContent" class="scroller-content relative z-10 hidden">
-                        <!-- JS 将填充 <li> -->
-                    </div>
+                <div class="w-px bg-black/5"></div>
+                <div>
+                    <div class="text-3xl font-light text-[#8C6A4F] mb-1 font-serif" id="statRewards">-</div>
+                    <div class="text-[11px] text-gray-400 tracking-[0.2em]">已派发专属礼遇</div>
                 </div>
             </div>
         </section>
 
-        <!-- 3. 核心博彩级抽奖区域 (圆盘与比例已完全复原) -->
-        <section class="max-w-3xl mx-auto px-6 text-center mb-24 relative w-full">
-            <!-- 底部环境光圆形框架，跟随父级居中 -->
-            <div class="absolute inset-0 bg-[#E6D5B8]/20 blur-3xl -z-10 rounded-full w-3/4 mx-auto h-3/4 mt-10"></div>
+        <!-- 奖品陈列区域 -->
+        <section class="max-w-5xl mx-auto px-6 mb-24">
+            <div class="text-center mb-10">
+                <h2 class="text-lg tracking-[0.2em] text-[#1A1A1A] uppercase serif-font font-bold">本期致臻礼品</h2>
+                <div class="w-12 h-[2px] bg-[#1A1A1A] mx-auto mt-4"></div>
+            </div>
+            <div id="prizesShowcase" class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                <!-- 由 JS 渲染 -->
+            </div>
+        </section>
+
+        <section class="max-w-3xl mx-auto px-6 text-center mb-16 relative">
+            <!-- 修复错位：底部环境光圆形框架，交由JS基于转盘基准宽度同步渲染 -->
+            <div id="wheelBgGlow" class="absolute bg-[#E6D5B8]/20 blur-3xl -z-10 rounded-full top-[160px] left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
             
             <div class="wheel-container mb-12">
                 <div class="pointer-container">
                     <div class="pointer-outer"></div>
                     <div class="pointer-inner"></div>
                 </div>
+                <!-- 转盘本体 -->
                 <div id="wheel" class="wheel"></div>
                 <div class="wheel-center">
                     <img id="wheelLogo" src="https://cdn.phototourl.com/free/2026-07-22-3304ec9f-26ef-4847-b0b1-f9287f713966.png" alt="NOEY">
@@ -119,19 +135,7 @@
             <p class="text-sm text-gray-500 tracking-widest mt-4">您当前拥有 <span id="chances" class="font-serif text-[#5C1615] text-xl font-bold mx-1">0</span> 次专属机会</p>
         </section>
 
-        <!-- 4. 奖品陈列区域 -->
-        <section class="max-w-5xl mx-auto px-6 mb-24 w-full">
-            <div class="text-center mb-10">
-                <h2 class="text-lg tracking-[0.2em] text-[#1A1A1A] uppercase serif-font font-bold">本期致臻礼品</h2>
-                <div class="w-12 h-[2px] bg-[#1A1A1A] mx-auto mt-4"></div>
-            </div>
-            <div id="prizesShowcase" class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-                <!-- 由 JS 渲染 -->
-            </div>
-        </section>
-
-        <!-- 5. 个人中奖记录 -->
-        <section class="max-w-lg mx-auto px-6 mb-24 w-full">
+        <section class="max-w-lg mx-auto px-6 mb-24">
             <div class="premium-card p-8 rounded-lg bg-white/80 backdrop-blur text-center">
                 <h3 class="text-xs tracking-[0.2em] text-gray-500 uppercase mb-6 flex items-center justify-center gap-2">
                     <span class="w-1 h-1 bg-[#8C6A4F] rounded-full"></span> 
@@ -142,8 +146,8 @@
             </div>
         </section>
 
-        <!-- 6. 获得抽奖资格 -->
-        <section class="max-w-5xl mx-auto px-6 mb-10 w-full">
+        <!-- 获得抽奖资格 -->
+        <section class="max-w-5xl mx-auto px-6 mb-10">
             <div class="text-center mb-10">
                 <h2 class="text-lg tracking-[0.2em] text-[#1A1A1A] uppercase serif-font font-bold">如何获得更多专属机会</h2>
                 <div class="w-12 h-[2px] bg-[#1A1A1A] mx-auto mt-4"></div>
@@ -154,7 +158,6 @@
         </section>
     </main>
 
-    <!-- 官方页脚 -->
     <footer class="bg-[#111111] text-white py-16 px-6 text-center border-t-4 border-[#8C6A4F]">
         <img id="logoWhite" src="https://cdn.phototourl.com/free/2026-07-22-2a300550-48b9-41fb-acd5-778e3e3af16e.png" alt="NOEY" class="h-6 object-contain mx-auto mb-8 opacity-90">
         <div class="text-[10px] tracking-[0.2em] text-gray-400 uppercase space-y-3 font-light leading-loose">
@@ -183,7 +186,7 @@
         </div>
     </div>
 
-    <!-- 中奖弹窗 (保留强制收集信息的逻辑) -->
+    <!-- 中奖弹窗 -->
     <div id="resultModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-[#111]/90 backdrop-blur-md opacity-0 transition-opacity duration-500">
         <div class="bg-gradient-to-b from-[#2a0808] to-[#111] border border-[#D4AF37]/40 p-8 max-w-sm w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-500 rounded-xl relative max-h-[90vh] overflow-y-auto" id="resultModalContent">
             <svg class="w-10 h-10 text-[#D4AF37] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
@@ -265,6 +268,28 @@
         let currentDegree = 0;
         let prizes = [];
 
+        // 核心修复函数：根据真实物理宽度，强制锁定同等高度，彻底杜绝拉伸或正方形
+        function fixWheelSize() {
+            const container = document.querySelector('.wheel-container');
+            if (container) {
+                // 1. 获取浏览器渲染的实际物理宽度 (例如被挤压成320px)
+                const realSize = container.offsetWidth;
+                
+                // 2. 将高度锁死为同等像素 (320px)，实现完美的正方形容器 + border-radius 得到纯正圆形
+                container.style.height = realSize + 'px';
+                
+                // 3. 强制底部背景光环与转盘保持相同的基准尺度
+                const bgGlow = document.getElementById('wheelBgGlow');
+                if (bgGlow) {
+                    bgGlow.style.width = (realSize * 1.3) + 'px';
+                    bgGlow.style.height = (realSize * 1.3) + 'px';
+                }
+            }
+        }
+
+        // 监听屏幕尺寸变化实时自适应
+        window.addEventListener('resize', fixWheelSize);
+
         async function init() {
             try {
                 const cfgRes = await fetch('/api/config');
@@ -282,52 +307,21 @@
                 document.getElementById('modalPaymentCopy').innerText = config.paymentCopy || "";
                 document.getElementById('modalQrCode').src = config.qrCodeUrl || "";
 
-                fetchStatsAndWinners();
+                const statsRes = await fetch('/api/stats');
+                const stats = await statsRes.json();
+                document.getElementById('statUsers').innerText = stats.totalUsers;
+                document.getElementById('statRewards').innerText = stats.totalRewards;
 
                 const prizeRes = await fetch('/api/prizes');
                 prizes = await prizeRes.json();
                 renderPrizesShowcase(prizes);
                 renderWheel(prizes);
+                
+                // 初次渲染完成后，立刻执行圆盘校准
+                setTimeout(fixWheelSize, 50);
 
                 await refreshUserData();
             } catch (e) { console.error("加载失败", e); }
-        }
-
-        async function fetchStatsAndWinners() {
-            const statsRes = await fetch('/api/stats');
-            const stats = await statsRes.json();
-            document.getElementById('statUsers').innerText = stats.totalUsers;
-            document.getElementById('statRewards').innerText = stats.totalRewards;
-
-            const winnerRes = await fetch('/api/public/winners');
-            const winners = await winnerRes.json();
-            
-            const scrollerContent = document.getElementById('scrollerContent');
-            const scrollerEmpty = document.getElementById('scrollerEmpty');
-            
-            if (winners && winners.length > 0) {
-                scrollerEmpty.classList.add('hidden');
-                scrollerContent.classList.remove('hidden');
-                
-                const renderItem = (w) => `
-                    <div class="py-3 flex items-center justify-between text-sm border-b border-gray-100/50 last:border-0 hover:bg-white/50 transition-colors px-2 rounded">
-                        <div class="flex items-center gap-3">
-                            <span class="text-xl">🎉</span>
-                            <div>
-                                <span class="font-bold text-[#1A1A1A]">${w.userName}</span>
-                                <span class="text-gray-400 text-xs ml-2 font-mono">${w.phone}</span>
-                            </div>
-                        </div>
-                        <div class="text-[#8C6A4F] font-medium text-xs bg-[#8C6A4F]/10 px-2.5 py-1 rounded-sm">
-                            获得：${w.prizeName}
-                        </div>
-                    </div>
-                `;
-
-                let html = winners.map(renderItem).join('');
-                if (winners.length > 3) html += html; 
-                scrollerContent.innerHTML = html;
-            }
         }
 
         async function refreshUserData() {
@@ -407,11 +401,9 @@
             `).join('');
         }
 
-        // [已恢复] 原始版本的转盘渲染算法
         function renderWheel(prizeList) {
             const wheel = document.getElementById('wheel');
             const sliceAngle = 360 / prizeList.length;
-            // 采用高级赌场配色：勃艮第红 与 香槟金 交替
             const colors = ['#5C1615', '#E6D5B8']; 
             const textColors = ['#E6D5B8', '#5C1615'];
             
@@ -423,7 +415,6 @@
                 if(displayName.includes('-')) displayName = displayName.split('-')[1].trim();
                 else if(displayName.includes('：')) displayName = displayName.split('：')[1].trim();
 
-                // 核心修复：更精确的扇形文字定位与抗遮挡算法
                 const textRotate = rotate + sliceAngle / 2 - 90;
 
                 return `
@@ -525,8 +516,7 @@
                 
                 alert('登记成功！系统已录入，您的专属顾问将尽快与您联系。');
                 closeResultModal();
-                await refreshUserData(); 
-                fetchStatsAndWinners(); 
+                await refreshUserData();
             } catch(e) {
                 alert(e.message || '提交失败');
             } finally {

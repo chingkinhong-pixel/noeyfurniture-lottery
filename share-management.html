@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOEY - 分享裂变管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        body { background-color: #F9F9F9; font-family: -apple-system, sans-serif; color: #1A1A1A; }
+        .nav-link { color: #71717A; padding-bottom: 12px; font-size: 14px; letter-spacing: 0.1em; transition: all 0.3s; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 6px; }
+        .nav-link:hover { color: #1A1A1A; }
+        .nav-link.active { color: #1A1A1A; font-weight: 600; border-bottom: 2px solid #1A1A1A; }
+        .table-header { font-size: 11px; font-weight: 700; color: #71717A; border-bottom: 1px solid #EEEEEE; padding: 16px; background-color: #FAFAFA; text-align: left; white-space: nowrap;}
+        .table-cell { font-size: 13px; padding: 16px; border-bottom: 1px solid #FAFAFA; vertical-align: middle;}
+        .table-row { transition: background-color 0.2s; background: white;}
+        .table-row:hover { background-color: #FAFAFA; }
+        
+        .status-0 { color: #D97706; background: #FFFBEB; padding: 4px 8px; border-radius: 4px; border: 1px solid #FEF3C7;}
+        .status-1 { color: #16A34A; background: #F0FDF4; padding: 4px 8px; border-radius: 4px; border: 1px solid #DCFCE7; font-weight: bold;}
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+    
+    <header class="bg-white border-b border-[#EEEEEE] sticky top-0 z-50 shadow-sm">
+        <div class="max-w-[1200px] mx-auto px-6 pt-6 flex justify-between items-end">
+            <div>
+                <h1 class="text-xl font-bold tracking-widest mb-6 flex items-center gap-2">
+                    <i class="ph-fill ph-leaf text-[#8C6A4F]"></i> NOEY SHARE
+                </h1>
+                <nav class="flex space-x-8">
+                    <a href="admin.html" class="nav-link"><i class="ph ph-faders text-lg"></i> 基础设置与资产</a>
+                    <a href="customer-management.html" class="nav-link"><i class="ph ph-users text-lg"></i> 客户跟进 CRM</a>
+                    <a href="reward-records.html" class="nav-link"><i class="ph ph-gift text-lg"></i> 中奖流水库</a>
+                    <a href="share-management.html" class="nav-link active"><i class="ph ph-share-network text-lg"></i> 分享裂变管理</a>
+                </nav>
+            </div>
+            <button onclick="logout()" class="mb-6 text-xs text-gray-500 hover:text-black tracking-widest uppercase transition flex items-center gap-1">
+                 <i class="ph ph-sign-out"></i> 退出
+            </button>
+        </div>
+    </header>
+
+    <div class="max-w-[1200px] mx-auto px-6 py-8">
+        <div class="bg-white border border-[#EEEEEE] rounded-lg shadow-sm overflow-hidden">
+            
+            <div class="flex justify-between items-center p-6 border-b border-gray-100">
+                <div class="flex items-center gap-4">
+                    <h2 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                        裂变传播客户分析
+                    </h2>
+                    <div class="relative ml-4">
+                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="搜索发起人手机号..." class="pl-9 pr-4 py-2 text-xs border border-gray-200 rounded bg-gray-50 focus:bg-white focus:outline-none focus:border-black transition w-64">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto min-h-[500px]">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="table-header w-48">分享发起人</th>
+                            <th class="table-header text-center w-32">带来海报访问量</th>
+                            <th class="table-header text-center w-32">成功邀请注册数</th>
+                            <th class="table-header w-48">分享任务状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recordsTableBody">
+                        <!-- JS 渲染区 -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center text-sm">
+                <div class="text-gray-500" id="pageInfo"></div>
+                <div class="flex gap-2" id="paginationControls"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = '/login.html';
+        const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
+
+        let allRecords = [];
+        let searchQuery = "";
+        let currentPage = 1;
+        const pageSize = 15;
+
+        async function loadRecords() {
+             document.getElementById('recordsTableBody').innerHTML = `<tr><td colspan="4" class="text-center py-16 text-gray-400 text-sm">加载数据中...</td></tr>`;
+            try {
+                const res = await fetch('/api/admin/shares', { headers });
+                if (res.status === 403) return logout();
+                allRecords = await res.json();
+                renderRecords();
+            } catch(e) { console.error(e); }
+        }
+
+        function handleSearch(query) {
+            searchQuery = query.trim();
+            currentPage = 1;
+            renderRecords();
+        }
+
+        function renderRecords() {
+            let filtered = allRecords;
+            if (searchQuery) {
+                filtered = filtered.filter(r => r.phone && r.phone.includes(searchQuery));
+            }
+
+            const total = filtered.length;
+            const totalPages = Math.ceil(total / pageSize) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            
+            const start = (currentPage - 1) * pageSize;
+            const paginated = filtered.slice(start, start + pageSize);
+
+            const tbody = document.getElementById('recordsTableBody');
+            if(paginated.length === 0) {
+                 tbody.innerHTML = `<tr><td colspan="4" class="text-center py-16 text-gray-400 text-sm">暂无分享裂变数据</td></tr>`;
+            } else {
+                tbody.innerHTML = paginated.map(r => `
+                    <tr class="table-row">
+                        <td class="table-cell">
+                            <div class="font-bold text-gray-800 text-sm">${r.phone}</div>
+                            <div class="text-[10px] text-gray-400 mt-1">注册: ${r.registerTime ? r.registerTime.split(' ')[0] : '-'}</div>
+                        </td>
+                        <td class="table-cell text-center text-[#8C6A4F] font-bold text-lg">${r.clickCount || 0}</td>
+                        <td class="table-cell text-center">
+                            <span class="bg-gray-100 px-3 py-1 rounded text-sm font-bold text-gray-700 border border-gray-200">${r.invitees ? r.invitees.length : 0} / 3</span>
+                        </td>
+                        <td class="table-cell">
+                            <span class="text-xs font-medium status-${r.shareStatus}">
+                                ${r.shareStatus === 1 ? '✓ 任务已完成 (已加1次)' : '未达标'}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            document.getElementById('pageInfo').innerText = `共 ${total} 条数据，第 ${currentPage} 页 / 共 ${totalPages} 页`;
+            document.getElementById('paginationControls').innerHTML = `
+                <button onclick="currentPage--; renderRecords()" ${currentPage === 1 ? 'disabled' : ''} class="px-3 py-1 bg-white border border-gray-200 rounded text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition">上一页</button>
+                <button onclick="currentPage++; renderRecords()" ${currentPage === totalPages ? 'disabled' : ''} class="px-3 py-1 bg-white border border-gray-200 rounded text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition">下一页</button>
+            `;
+        }
+
+        function logout() { localStorage.removeItem('token'); window.location.href = '/login.html'; }
+        
+        loadRecords();
+    </script>
+</body>
+</html>

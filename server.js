@@ -31,10 +31,9 @@ const userSchema = new mongoose.Schema({
     rewards: [{ name: String, time: String }],
     pendingPrize: { type: String, default: "" }, 
     claimInfo: { userName: String, city: String, stage: String, layout: String, budget: String },
-    // 【新增】分享裂变相关字段
-    shareStatus: { type: Number, default: 0 }, // 0: 未完成任务, 1: 已完成(已加次数)
-    invitees: [{ type: String }],              // 邀请注册成功的好友手机号列表
-    clickCount: { type: Number, default: 0 }   // 专属链接被点击的次数
+    shareStatus: { type: Number, default: 0 }, 
+    invitees: [{ type: String }],              
+    clickCount: { type: Number, default: 0 }   
 });
 const User = mongoose.model('User', userSchema);
 
@@ -47,7 +46,10 @@ const customerSchema = new mongoose.Schema({
     budget: { type: String, default: "未确定" },
     layout: { type: String, default: "未确定" },
     needType: { type: String, default: "未确定" },
+    // 【修改】拓展了跟进漏斗的状态
     followUpStatus: { type: String, default: "新客户" },
+    // 【新增】客户标签
+    tags: { type: [String], default: [] },
     remark: { type: String, default: "" }
 });
 const Customer = mongoose.model('Customer', customerSchema);
@@ -64,7 +66,9 @@ const RewardRecord = mongoose.model('RewardRecord', rewardRecordSchema);
 
 const prizeSchema = new mongoose.Schema({
     name: { type: String, required: true },
-    weight: { type: Number, required: true }
+    weight: { type: Number, required: true },
+    // 【新增】奖品真实成本核算
+    cost: { type: Number, default: 0 }
 });
 const Prize = mongoose.model('Prize', prizeSchema);
 
@@ -85,14 +89,18 @@ async function initData() {
         }
         if (await Prize.countDocuments() === 0) {
             await Prize.insertMany([
-                { name: "NOEY DESIGN GIFT - 设计师床头柜", weight: 2 }, { name: "NOEY COLLECTION - 极简边几", weight: 8 },
-                { name: "CUSTOM UPGRADE - 拉直器2套", weight: 30 }, { name: "HOME BONUS - 定制优惠券500元", weight: 30 }, { name: "HOME BONUS - 定制优惠券1000元", weight: 30 }
+                { name: "NOEY DESIGN GIFT - 设计师床头柜", weight: 2, cost: 800 }, 
+                { name: "NOEY COLLECTION - 极简边几", weight: 8, cost: 500 },
+                { name: "CUSTOM UPGRADE - 拉直器2套", weight: 30, cost: 200 }, 
+                { name: "HOME BONUS - 定制优惠券500元", weight: 30, cost: 0 }, 
+                { name: "HOME BONUS - 定制优惠券1000元", weight: 30, cost: 0 }
             ]);
         }
         if (await Config.countDocuments() === 0) {
             await Config.create({ 
                 identifier: "global", title: "NOEY 幸运礼遇", subtitle: "为每一位选择诺一家具的客户，准备专属定制礼物。",
-                paymentCopy: "尊享专属设计方案，支付定金即刻解锁至臻礼遇。请扫码支付后联系您的专属设计师为您录入抽奖次数。", qrCodeUrl: "https://cdn.phototourl.com/free/2026-07-18-98c9e787-a88e-4b7d-969f-3cb31603a68c.png",
+                paymentCopy: "尊享专属设计方案，支付定金即刻解锁至臻礼遇。请扫码支付后联系您的专属设计师为您录入抽奖次数。", 
+                qrCodeUrl: "https://cdn.phototourl.com/free/2026-07-18-98c9e787-a88e-4b7d-969f-3cb31603a68c.png",
                 rules: [{ condition: "设计方案定金", value: "3000元", reward: "1次" }, { condition: "家具订单", value: "20000元", reward: "3次" }, { condition: "整屋定制", value: "50000元以上", reward: "8次" }],
                 brandPhilosophy: "以设计回应生活，以品质兑现承诺", logoColorUrl: "https://cdn.phototourl.com/free/2026-07-22-3304ec9f-26ef-4847-b0b1-f9287f713966.png", logoBlackUrl: "https://cdn.phototourl.com/free/2026-07-22-9af23acf-27a4-46c1-b357-9c86c6911389.png", logoWhiteUrl: "https://cdn.phototourl.com/free/2026-07-22-2a300550-48b9-41fb-acd5-778e3e3af16e.png"
             });
@@ -120,7 +128,6 @@ app.get('/api/stats', async (req, res) => {
     const users = await User.find({ role: 'user' });
     res.json({ totalUsers: users.length, totalRewards: users.reduce((sum, u) => sum + u.rewards.length, 0) });
 });
-
 app.get('/api/public/winners', async (req, res) => {
     try {
         const records = await RewardRecord.find({}).sort({ winTime: -1 }).limit(50);
@@ -130,20 +137,13 @@ app.get('/api/public/winners', async (req, res) => {
             prizeName: r.prizeName.includes('-') ? r.prizeName.split('-')[1].trim() : (r.prizeName.includes('：') ? r.prizeName.split('：')[1].trim() : r.prizeName)
         }));
         res.json(safeRecords);
-    } catch (e) {
-        res.json([]);
-    }
+    } catch (e) { res.json([]); }
 });
-
-// 【新增】处理分享链接被点击，增加分享人的访问量
 app.post('/api/invite/click', async (req, res) => {
     const { invite } = req.body;
-    if (invite) {
-        await User.updateOne({ phone: invite, role: 'user' }, { $inc: { clickCount: 1 } }).catch(()=>{});
-    }
+    if (invite) await User.updateOne({ phone: invite, role: 'user' }, { $inc: { clickCount: 1 } }).catch(()=>{});
     res.json({ success: true });
 });
-
 app.post('/api/login', async (req, res) => {
     try {
         const { phone, password, isAdminLogin, invite } = req.body;
@@ -154,20 +154,14 @@ app.post('/api/login', async (req, res) => {
             return res.json({ token: user.phone, role: user.role });
         } else {
             if (user && user.role === 'admin') return res.status(403).json({ error: '管理员请通过专属通道登录' });
-            
-            // 【修改】如果是新用户，处理裂变邀请逻辑
             if (!user) {
                 user = await User.create({ phone, role: 'user', chances: 1, rewards: [], pendingPrize: "", registerTime: new Date().toLocaleString() });
-                
-                // 处理邀请人奖励
                 if (invite && invite !== phone) {
                     const inviter = await User.findOne({ phone: invite, role: 'user' });
                     if (inviter && !inviter.invitees.includes(phone)) {
                         inviter.invitees.push(phone);
-                        // 当达到3人且任务未完成时，发放1次抽奖机会奖励
                         if (inviter.invitees.length >= 3 && inviter.shareStatus === 0) {
-                            inviter.chances += 1;
-                            inviter.shareStatus = 1; 
+                            inviter.chances += 1; inviter.shareStatus = 1; 
                         }
                         await inviter.save();
                     }
@@ -175,19 +169,17 @@ app.post('/api/login', async (req, res) => {
             }
             await Customer.findOneAndUpdate(
                 { phone }, 
-                { $setOnInsert: { phone, registerTime: user.registerTime, source: invite ? `好友邀请(${invite})` : '抽奖活动' } }, 
+                { $setOnInsert: { phone, registerTime: user.registerTime, source: invite ? `分享邀请` : '自然访问' } }, 
                 { upsert: true }
             );
             return res.json({ token: user.phone, role: user.role });
         }
     } catch (err) { res.status(500).json({ error: '服务器错误' }); }
 });
-
 app.get('/api/user', async (req, res) => {
     const user = await User.findOne({ phone: req.headers.authorization });
     user ? res.json(user) : res.status(404).json({ error: '用户不存在' });
 });
-
 app.post('/api/draw', async (req, res) => {
     try {
         const user = await User.findOne({ phone: req.headers.authorization });
@@ -206,11 +198,9 @@ app.post('/api/draw', async (req, res) => {
         user.chances -= 1;
         user.pendingPrize = wonPrize.name;
         await user.save(); 
-
         res.json({ prize: wonPrize, user: user });
     } catch (err) { res.status(500).json({ error: '抽奖失败' }); }
 });
-
 app.post('/api/claim', async (req, res) => {
     try {
         const user = await User.findOne({ phone: req.headers.authorization });
@@ -225,22 +215,16 @@ app.post('/api/claim', async (req, res) => {
         user.pendingPrize = ""; 
         await user.save();
 
-        let cleanName = userName;
-
         await Customer.findOneAndUpdate(
             { phone: user.phone },
-            { name: cleanName, stage: stage, layout: layout, budget: budget, followUpStatus: "待联系" },
+            { name: userName, stage: stage, layout: layout, budget: budget, followUpStatus: "新客户" },
             { upsert: true }
         );
 
-        await RewardRecord.create({
-            phone: user.phone, userName: cleanName, prizeName: prizeToClaim, winTime: winTime, claimStatus: "未联系"
-        });
-
+        await RewardRecord.create({ phone: user.phone, userName: userName, prizeName: prizeToClaim, winTime: winTime, claimStatus: "未领取" });
         res.json({ success: true });
     } catch (err) { res.status(500).json({ error: '提交失败' }); }
 });
-
 app.post('/api/abandon', async (req, res) => {
     try {
         const user = await User.findOne({ phone: req.headers.authorization });
@@ -250,7 +234,74 @@ app.post('/api/abandon', async (req, res) => {
 });
 
 // ==========================================
-// 6. 后台管理独立模块 API
+// 6. 后台数据分析聚合中枢 API (新增)
+// ==========================================
+app.get('/api/admin/dashboard', requireAdmin, async (req, res) => {
+    try {
+        const users = await User.find({ role: 'user' });
+        const records = await RewardRecord.find();
+        const customers = await Customer.find();
+        const prizes = await Prize.find();
+
+        const todayStr = new Date().toLocaleDateString();
+
+        // 1. 用户数据
+        const totalUsers = users.length;
+        const todayNewUsers = users.filter(u => u.registerTime && u.registerTime.includes(todayStr)).length;
+        
+        // 2. 抽奖数据
+        const totalDraws = records.length;
+        const todayDraws = records.filter(r => r.winTime && r.winTime.includes(todayStr)).length;
+        const remainingChances = users.reduce((sum, u) => sum + (u.chances || 0), 0);
+        const avgDraws = totalUsers > 0 ? (totalDraws / totalUsers).toFixed(1) : 0;
+
+        // 3. 奖品分布与成本核算
+        let totalCost = 0;
+        const prizeStats = {};
+        prizes.forEach(p => { prizeStats[p.name] = { count: 0, cost: p.cost || 0 }; });
+
+        records.forEach(r => {
+            if (prizeStats[r.prizeName]) {
+                prizeStats[r.prizeName].count++;
+                totalCost += prizeStats[r.prizeName].cost;
+            } else {
+                // 处理可能存在的老数据或已删除的奖品
+                prizeStats[r.prizeName] = { count: 1, cost: 0 };
+            }
+        });
+
+        // 4. 营销转化分析 (ROI)
+        const totalCustomers = customers.length;
+        const cac = totalCustomers > 0 ? (totalCost / totalCustomers).toFixed(2) : 0;
+
+        // 5. 分享裂变分析
+        const sharers = users.filter(u => u.shareStatus > 0 || u.clickCount > 0 || u.invitees.length > 0);
+        const totalShareClicks = sharers.reduce((sum, u) => sum + (u.clickCount || 0), 0);
+        const totalShareRegisters = sharers.reduce((sum, u) => sum + (u.invitees ? u.invitees.length : 0), 0);
+
+        // 6. 客户状态漏斗
+        const funnel = { '新客户': 0, '未联系': 0, '已咨询': 0, '已量房': 0, '已报价': 0, '已成交': 0, '已完成安装': 0, '暂无需求': 0 };
+        customers.forEach(c => {
+            const status = c.followUpStatus || '新客户';
+            if (funnel[status] !== undefined) funnel[status]++;
+        });
+
+        res.json({
+            users: { total: totalUsers, today: todayNewUsers },
+            draws: { total: totalDraws, today: todayDraws, remaining: remainingChances, avg: avgDraws },
+            prizes: prizeStats,
+            roi: { totalCost, cac, convertedCustomers: totalCustomers },
+            shares: { sharers: sharers.length, clicks: totalShareClicks, registers: totalShareRegisters },
+            funnel
+        });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: "聚合数据失败" });
+    }
+});
+
+// ==========================================
+// 7. 基础后台管理接口
 // ==========================================
 app.post('/api/config', requireAdmin, async (req, res) => {
     await Config.findOneAndUpdate({ identifier: "global" }, req.body, { upsert: true });
@@ -280,14 +331,6 @@ app.post('/api/admin/reset-rewards', requireAdmin, async (req, res) => {
     res.json({ success: true });
 });
 app.get('/api/admin/customers', requireAdmin, async (req, res) => {
-    const allUsers = await User.find({ role: 'user' });
-    for (let u of allUsers) {
-        await Customer.updateOne(
-            { phone: u.phone },
-            { $setOnInsert: { phone: u.phone, registerTime: u.registerTime || new Date().toLocaleString(), name: u.claimInfo?.userName || '-' } },
-            { upsert: true }
-        );
-    }
     const customers = await Customer.find().sort({ registerTime: -1 });
     res.json(customers);
 });
@@ -303,14 +346,8 @@ app.put('/api/admin/rewards/:id', requireAdmin, async (req, res) => {
     await RewardRecord.findByIdAndUpdate(req.params.id, { claimStatus: req.body.claimStatus });
     res.json({ success: true });
 });
-
-// 【新增】获取分享裂变管理列表
 app.get('/api/admin/shares', requireAdmin, async (req, res) => {
-    // 找出所有点击量大于0，或者成功邀请过人的用户
-    const shares = await User.find({ 
-        role: 'user', 
-        $or: [{ clickCount: { $gt: 0 } }, { 'invitees.0': { $exists: true } }] 
-    }).select('phone shareStatus clickCount invitees registerTime').sort({ 'invitees.length': -1, clickCount: -1 });
+    const shares = await User.find({ role: 'user', $or: [{ clickCount: { $gt: 0 } }, { 'invitees.0': { $exists: true } }] }).select('phone shareStatus clickCount invitees registerTime').sort({ 'invitees.length': -1, clickCount: -1 });
     res.json(shares);
 });
 

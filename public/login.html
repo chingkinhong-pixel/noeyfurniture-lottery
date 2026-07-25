@@ -52,17 +52,24 @@
 
     <script>
         let isAdminView = false;
+        
+        // 【新增】解析邀请码并在有人点击时即刻增加分享人的访问量统计
+        const urlParams = new URLSearchParams(window.location.search);
+        const inviteCode = urlParams.get('invite');
+        if(inviteCode) {
+            fetch('/api/invite/click', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ invite: inviteCode })
+            });
+        }
 
         fetch('/api/config').then(res => res.json()).then(data => {
             document.getElementById('pageTitle').innerText = data.title || 'NOEY 诺一家具';
             document.getElementById('pageSubtitle').innerText = data.subtitle || '为每一位客户准备专属定制礼物';
             document.title = (data.title || 'NOEY') + " - 品牌认证";
             
-            // ==========================================
-            // 🎨 硬编码：绝对兜底的彩色 Logo 链接 (已更新)
-            // ==========================================
             const MY_LOGO_COLOR = 'https://cdn.phototourl.com/free/2026-07-22-3304ec9f-26ef-4847-b0b1-f9287f713966.png';
-            
             const logoEl = document.getElementById('loginLogo');
             logoEl.src = data.logoColorUrl || MY_LOGO_COLOR;
             logoEl.classList.remove('hidden');
@@ -86,10 +93,11 @@
             btn.disabled = true;
 
             try {
+                // 【修改】将 invite 邀请码一同发送给后端
                 const res = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone, password, isAdminLogin })
+                    body: JSON.stringify({ phone, password, isAdminLogin, invite: inviteCode })
                 });
                 const data = await res.json();
 

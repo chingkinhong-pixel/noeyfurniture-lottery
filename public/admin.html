@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
-        body { background-color: #F9F9F9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1A1A1A; }
+        body { background-color: #F9F9F9; font-family: -apple-system, sans-serif; color: #1A1A1A; }
         .nav-link { color: #71717A; padding-bottom: 12px; font-size: 14px; letter-spacing: 0.1em; transition: all 0.3s; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 6px; }
         .nav-link:hover { color: #1A1A1A; }
         .nav-link.active { color: #1A1A1A; font-weight: 600; border-bottom: 2px solid #1A1A1A; }
@@ -29,6 +29,8 @@
                     <a href="admin.html" class="nav-link active"><i class="ph ph-faders text-lg"></i> 基础设置与资产</a>
                     <a href="customer-management.html" class="nav-link"><i class="ph ph-users text-lg"></i> 客户跟进 CRM</a>
                     <a href="reward-records.html" class="nav-link"><i class="ph ph-gift text-lg"></i> 中奖流水库</a>
+                    <!-- 【新增】分享裂变管理入口 -->
+                    <a href="share-management.html" class="nav-link"><i class="ph ph-share-network text-lg"></i> 分享裂变管理</a>
                 </nav>
             </div>
             <button onclick="logout()" class="mb-6 text-xs text-gray-500 hover:text-black tracking-widest uppercase transition flex items-center gap-1">
@@ -71,7 +73,7 @@
                                 <input type="text" id="logoColorUrl" class="input-premium text-xs" placeholder="http://...">
                             </div>
                             <div>
-                                <label class="block text-[11px] text-gray-400 mb-1">深色版 Logo (浅色导航栏)</label>
+                                <label class="block text-[11px] text-gray-400 mb-1">深色版 Logo (浅色导航栏/海报)</label>
                                 <input type="text" id="logoBlackUrl" class="input-premium text-xs" placeholder="http://...">
                             </div>
                             <div>
@@ -103,7 +105,7 @@
                         </div>
                         <div>
                             <label class="block text-[11px] font-bold text-gray-500 mb-2 tracking-widest uppercase">修改密码</label>
-                            <input type="text" id="adminPasswordInput" class="input-premium" placeholder="留空则不修改">
+                            <input type="password" id="adminPasswordInput" class="input-premium" placeholder="留空则不修改">
                         </div>
                         <button onclick="saveAdminAccount()" class="w-full bg-white border border-[#1A1A1A] text-[#1A1A1A] px-4 py-2.5 rounded text-xs font-bold tracking-widest hover:bg-[#1A1A1A] hover:text-white transition">
                             更新安全凭证
@@ -115,7 +117,6 @@
 
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
             
-            <!-- [优化] 用户管理模块 (支持搜索与分页) -->
             <div class="premium-card flex flex-col h-[700px]">
                 <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
                     <div>
@@ -124,25 +125,20 @@
                         </h2>
                         <p class="text-[11px] text-gray-400 mt-1">控制用户抽奖次数</p>
                     </div>
-                    <!-- 搜索框 -->
                     <div class="relative">
                         <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                         <input type="text" id="userSearch" oninput="handleUserSearch(this.value)" placeholder="搜索手机号..." class="pl-9 pr-4 py-1.5 text-xs border border-gray-200 rounded bg-gray-50 focus:bg-white focus:outline-none focus:border-black transition w-48">
                     </div>
                 </div>
                 
-                <div id="usersList" class="flex-grow overflow-y-auto space-y-3 pr-2">
-                    <!-- JS 渲染列表 -->
-                </div>
+                <div id="usersList" class="flex-grow overflow-y-auto space-y-3 pr-2"></div>
 
-                <!-- 分页栏 -->
                 <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
                     <div class="text-xs text-gray-400" id="userPageInfo"></div>
                     <div class="flex gap-2" id="userPagination"></div>
                 </div>
             </div>
 
-            <!-- 奖品陈列管理 -->
             <div class="premium-card flex flex-col h-[700px]">
                 <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
                     <div>
@@ -171,8 +167,6 @@
         const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
         
         let currentData = { prizes: [], users: [] };
-        
-        // 分页与搜索状态
         let userSearchQuery = "";
         let userCurrentPage = 1;
         const userPageSize = 10;
@@ -230,7 +224,6 @@
         function addPrize() { currentData.prizes.push({ name: "NEW GIFT - 新奖品", weight: 10 }); renderPrizes(); }
         async function savePrizes() { await fetch('/api/admin/prizes', { method: 'POST', headers, body: JSON.stringify(currentData.prizes) }); alert('奖品库已同步至大转盘！'); }
 
-        // [新增] 搜索与分页渲染逻辑
         function handleUserSearch(query) {
             userSearchQuery = query.trim();
             userCurrentPage = 1;
@@ -238,13 +231,9 @@
         }
 
         function renderUsers() {
-            // 过滤
             let filteredUsers = currentData.users;
-            if (userSearchQuery) {
-                filteredUsers = filteredUsers.filter(u => u.phone.includes(userSearchQuery));
-            }
+            if (userSearchQuery) filteredUsers = filteredUsers.filter(u => u.phone.includes(userSearchQuery));
 
-            // 分页
             const total = filteredUsers.length;
             const totalPages = Math.ceil(total / userPageSize) || 1;
             if (userCurrentPage > totalPages) userCurrentPage = totalPages;
@@ -252,7 +241,6 @@
             const start = (userCurrentPage - 1) * userPageSize;
             const paginatedUsers = filteredUsers.slice(start, start + userPageSize);
 
-            // 渲染列表
             document.getElementById('usersList').innerHTML = paginatedUsers.map(u => `
                 <div class="flex items-center justify-between p-4 border border-[#EEEEEE] rounded bg-white hover:border-[#8C6A4F]/50 transition-all">
                     <div>
@@ -269,14 +257,11 @@
                                 <input type="number" value="${u.chances}" onchange="updateUserChanceAPI('${u.phone}', this.value)" class="w-12 py-1 text-sm text-center focus:outline-none focus:bg-gray-50 bg-transparent font-bold text-[#8C6A4F]">
                             </div>
                         </div>
-                        <button onclick="resetUserRewards('${u.phone}')" class="text-xs text-gray-400 hover:text-red-500 border border-gray-200 hover:border-red-200 px-2 py-1.5 rounded transition">
-                            清空
-                        </button>
+                        <button onclick="resetUserRewards('${u.phone}')" class="text-xs text-gray-400 hover:text-red-500 border border-gray-200 hover:border-red-200 px-2 py-1.5 rounded transition">清空</button>
                     </div>
                 </div>
             `).join('') || `<div class="text-center text-xs text-gray-400 py-10">未找到匹配的客户</div>`;
 
-            // 渲染分页控件
             document.getElementById('userPageInfo').innerText = `共 ${total} 人，第 ${userCurrentPage}/${totalPages} 页`;
             document.getElementById('userPagination').innerHTML = `
                 <button onclick="userCurrentPage--; renderUsers()" ${userCurrentPage === 1 ? 'disabled' : ''} class="px-2 py-1 border rounded text-xs disabled:opacity-30">上一页</button>
@@ -284,11 +269,9 @@
             `;
         }
 
-        // [新增] 独立调用 API 更新次数，避免分页状态下保存全部数据导致错乱
         async function updateUserChanceAPI(phone, newChance) {
             try {
                 await fetch(`/api/admin/users/${phone}/chances`, { method: 'PUT', headers, body: JSON.stringify({ chances: Number(newChance) }) });
-                // 同步本地数据状态
                 const index = currentData.users.findIndex(u => u.phone === phone);
                 if(index > -1) currentData.users[index].chances = Number(newChance);
             } catch(e) { alert('更新次数失败'); }

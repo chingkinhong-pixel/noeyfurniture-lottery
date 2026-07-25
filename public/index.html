@@ -17,7 +17,7 @@
         .premium-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.06); }
         
         /* 强制防变形与圆形约束 */
-        .wheel-container { position: relative; width: 85vw; max-width: 340px; margin: 0 auto; border-radius: 50%; border: 8px solid #1A1A1A; box-shadow: 0 20px 50px rgba(0,0,0,0.15), inset 0 0 20px rgba(0,0,0,0.5); overflow: hidden; background: #1A1A1A; display: flex; justify-content: center; align-items: center; -webkit-mask-image: -webkit-radial-gradient(white, black); transform: translateZ(0); }
+        .wheel-container { position: relative; width: 100%; max-width: 340px; margin: 0 auto; border-radius: 50%; border: 8px solid #1A1A1A; box-shadow: 0 20px 50px rgba(0,0,0,0.15), inset 0 0 20px rgba(0,0,0,0.5); overflow: hidden; background: #1A1A1A; display: flex; justify-content: center; align-items: center; -webkit-mask-image: -webkit-radial-gradient(white, black); transform: translateZ(0); }
         .wheel { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; border-radius: 50%; transition: transform 4s cubic-bezier(0.2, 0.8, 0.1, 1); }
         .pointer-container { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); z-index: 30; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.3));}
         .pointer-outer { width: 0; height: 0; border-left: 16px solid transparent; border-right: 16px solid transparent; border-top: 32px solid #D4AF37; }
@@ -197,6 +197,7 @@
     </div>
 
     <!-- The Premium Poster Template (Hidden) -->
+    <!-- 彻底重构为高级家具杂志留白排版风格 -->
     <div id="posterTemplate" style="position: absolute; left: -9999px; top: -9999px; width: 1080px; height: 1440px; box-sizing: border-box; font-family: 'Noto Serif SC', 'Inter', sans-serif; overflow: hidden; z-index: -100;">
         <img id="posterBgImg" src="" crossorigin="anonymous" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1;">
         <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(255,255,255,0.92), rgba(247,245,240,0.96)); z-index: 2;"></div>
@@ -213,6 +214,7 @@
             
             <div style="width: 60px; height: 2px; background-color: #8C6A4F; margin-bottom: 80px;"></div>
             
+            <!-- 精选奖品大纲 -->
             <div style="width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 30px; margin-bottom: auto;">
                 <div style="background: rgba(255,255,255,0.6); border: 1px solid rgba(0,0,0,0.05); padding: 40px 50px; display: flex; align-items: center; gap: 40px;">
                     <div style="width: 8px; height: 40px; background-color: #8C6A4F;"></div>
@@ -358,6 +360,7 @@
 
         async function init() {
             try {
+                // 1. 初始化高清家具图片
                 document.getElementById('img-closet').src = ASSETS.homeBannerCloset;
                 document.getElementById('img-living').src = ASSETS.homeBannerLiving;
                 document.getElementById('img-bedroom').src = ASSETS.homeBannerBedroom;
@@ -377,9 +380,11 @@
                 // 动态替换后台可配的标题文字
                 if(config.title && config.subtitle) {
                     const titleParts = config.title.split(' ');
+                    // 将大标题通过空格切割并加入富文本排版层级
                     document.getElementById('pageTitle').innerHTML = `${titleParts[0] || '定制梦想空间'}<br><span class="text-3xl md:text-5xl lg:text-6xl font-medium mt-3 block text-[#1A1A1A]/80">${titleParts.slice(1).join(' ') || '赢取专属家居礼遇'}</span>`;
                     document.getElementById('pageSubtitle').innerHTML = `${config.subtitle.split('，')[0]}<br class="md:hidden"><span class="font-bold text-[#1A1A1A]">${config.subtitle.split('，')[1] || ''}</span>`;
                     
+                    // 同步到海报的配置中
                     document.getElementById('posterTitle').innerText = titleParts[0] || '定制梦想空间';
                     document.getElementById('posterSubtitle').innerText = titleParts.slice(1).join(' ') || '赢取专属家具礼遇';
                 }

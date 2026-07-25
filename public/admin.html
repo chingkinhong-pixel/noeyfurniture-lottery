@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOEY 诺一家具 - 后台中心</title>
+    <title>NOEY - 营销数据驾驶舱</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { background-color: #F9F9F9; font-family: -apple-system, sans-serif; color: #1A1A1A; }
         .nav-link { color: #71717A; padding-bottom: 12px; font-size: 14px; letter-spacing: 0.1em; transition: all 0.3s; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 6px; }
         .nav-link:hover { color: #1A1A1A; }
         .nav-link.active { color: #1A1A1A; font-weight: 600; border-bottom: 2px solid #1A1A1A; }
-        .premium-card { background: white; border: 1px solid #EEEEEE; border-radius: 8px; padding: 24px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02); transition: box-shadow 0.3s; }
-        .premium-card:hover { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04); }
-        .input-premium { width: 100%; border: 1px solid #E4E4E7; border-radius: 6px; padding: 10px 12px; font-size: 13px; background-color: #FAFAFA; transition: all 0.2s; }
-        .input-premium:focus { background-color: #FFFFFF; border-color: #1A1A1A; outline: none; box-shadow: 0 0 0 1px #1A1A1A; }
+        .data-card { background: white; border: 1px solid #EEEEEE; border-radius: 8px; padding: 24px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02); }
+        .data-value { font-size: 28px; font-weight: 700; color: #1A1A1A; margin-top: 8px; font-family: monospace;}
+        .data-label { font-size: 12px; color: #71717A; letter-spacing: 0.1em; text-transform: uppercase; }
     </style>
 </head>
 <body class="min-h-screen pb-12">
@@ -23,13 +23,13 @@
         <div class="max-w-[1400px] mx-auto px-6 pt-6 flex justify-between items-end">
             <div>
                 <h1 class="text-xl font-bold tracking-widest mb-6 flex items-center gap-2">
-                    <i class="ph-fill ph-leaf text-[#8C6A4F]"></i> NOEY MANAGEMENT
+                    <i class="ph-fill ph-chart-polar text-[#8C6A4F]"></i> NOEY DATA CENTER
                 </h1>
                 <nav class="flex space-x-8">
-                    <a href="admin.html" class="nav-link active"><i class="ph ph-faders text-lg"></i> 基础设置与资产</a>
+                    <a href="admin.html" class="nav-link active"><i class="ph ph-chart-pie-slice text-lg"></i> 营销数据驾驶舱</a>
+                    <a href="settings.html" class="nav-link"><i class="ph ph-faders text-lg"></i> 基础设置与资产</a>
                     <a href="customer-management.html" class="nav-link"><i class="ph ph-users text-lg"></i> 客户跟进 CRM</a>
                     <a href="reward-records.html" class="nav-link"><i class="ph ph-gift text-lg"></i> 中奖流水库</a>
-                    <!-- 【新增】分享裂变管理入口 -->
                     <a href="share-management.html" class="nav-link"><i class="ph ph-share-network text-lg"></i> 分享裂变管理</a>
                 </nav>
             </div>
@@ -41,121 +41,68 @@
 
     <div class="max-w-[1400px] mx-auto px-6 py-8">
         
-        <div class="premium-card mb-8">
-            <h2 class="text-sm font-bold mb-6 tracking-widest text-gray-800 uppercase flex items-center gap-2 pb-3 border-b border-gray-100">
-                <i class="ph ph-paint-brush-broad text-[#8C6A4F] text-lg"></i> 品牌营销与资产配置
-            </h2>
-            
-            <div class="grid grid-cols-1 xl:grid-cols-3 gap-10">
-                <div class="xl:col-span-2 space-y-6">
-                    <div class="grid grid-cols-2 gap-6">
-                        <div>
-                            <label class="flex items-center gap-1 text-xs font-bold text-gray-500 mb-2 tracking-widest uppercase">活动大标题</label>
-                            <input type="text" id="configTitle" class="input-premium">
-                        </div>
-                        <div>
-                            <label class="flex items-center gap-1 text-xs font-bold text-gray-500 mb-2 tracking-widest uppercase">活动副标题</label>
-                            <input type="text" id="configSubtitle" class="input-premium">
-                        </div>
-                    </div>
+        <!-- Top Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div class="data-card border-t-4 border-[#1A1A1A]">
+                <div class="flex justify-between items-start">
                     <div>
-                        <label class="flex items-center gap-1 text-xs font-bold text-gray-500 mb-2 tracking-widest uppercase">收款/营销引导话术</label>
-                        <input type="text" id="configPaymentCopy" class="input-premium">
+                        <div class="data-label">累计参与用户</div>
+                        <div class="data-value" id="val-total-users">--</div>
                     </div>
-
-                    <div class="bg-[#FAFAFA] p-6 rounded border border-gray-200 mt-6">
-                        <div class="flex items-center gap-2 mb-4">
-                            <h3 class="text-sm font-bold text-gray-800">Logo 素材链接管理</h3>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-[11px] text-gray-400 mb-1">彩色主 Logo (大转盘中心)</label>
-                                <input type="text" id="logoColorUrl" class="input-premium text-xs" placeholder="http://...">
-                            </div>
-                            <div>
-                                <label class="block text-[11px] text-gray-400 mb-1">深色版 Logo (浅色导航栏/海报)</label>
-                                <input type="text" id="logoBlackUrl" class="input-premium text-xs" placeholder="http://...">
-                            </div>
-                            <div>
-                                <label class="block text-[11px] text-gray-400 mb-1">浅色版 Logo (深色页脚)</label>
-                                <input type="text" id="logoWhiteUrl" class="input-premium text-xs" placeholder="http://...">
-                            </div>
-                        </div>
-                        <div class="mt-4 pt-4 border-t border-gray-100">
-                             <label class="block text-[11px] text-gray-400 mb-1">收款码 / 企微二维码</label>
-                             <input type="text" id="configQrCodeUrl" class="input-premium text-xs" placeholder="http://...">
-                        </div>
-                    </div>
-                    
-                    <div class="text-right">
-                        <button onclick="saveConfig()" class="bg-[#1A1A1A] text-white px-8 py-3 rounded text-xs font-bold tracking-widest hover:bg-[#8C6A4F] transition flex items-center gap-2 ml-auto">
-                            <i class="ph ph-floppy-disk text-lg"></i> 保存品牌配置
-                        </button>
-                    </div>
+                    <i class="ph-fill ph-users text-2xl text-gray-300"></i>
                 </div>
-
-                <div class="border-l border-gray-100 xl:pl-10">
-                    <h3 class="text-sm font-bold text-gray-800 tracking-widest uppercase mb-6 flex items-center gap-2 pb-3 border-b border-gray-100">
-                        系统安全设置
-                    </h3>
-                    <div class="space-y-5 bg-[#FAFAFA] p-6 rounded border border-gray-200">
-                        <div>
-                            <label class="block text-[11px] font-bold text-gray-500 mb-2 tracking-widest uppercase">管理员账号</label>
-                            <input type="text" id="adminPhoneInput" class="input-premium">
-                        </div>
-                        <div>
-                            <label class="block text-[11px] font-bold text-gray-500 mb-2 tracking-widest uppercase">修改密码</label>
-                            <input type="password" id="adminPasswordInput" class="input-premium" placeholder="留空则不修改">
-                        </div>
-                        <button onclick="saveAdminAccount()" class="w-full bg-white border border-[#1A1A1A] text-[#1A1A1A] px-4 py-2.5 rounded text-xs font-bold tracking-widest hover:bg-[#1A1A1A] hover:text-white transition">
-                            更新安全凭证
-                        </button>
+                <div class="text-[10px] text-gray-400 mt-4">今日新增: <span id="val-today-users" class="font-bold text-green-600">--</span> 人</div>
+            </div>
+            <div class="data-card border-t-4 border-[#8C6A4F]">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="data-label">累计抽奖次数</div>
+                        <div class="data-value" id="val-total-draws">--</div>
                     </div>
+                    <i class="ph-fill ph-target text-2xl text-gray-300"></i>
                 </div>
+                <div class="text-[10px] text-gray-400 mt-4">今日消耗: <span id="val-today-draws" class="font-bold text-gray-800">--</span> 次 | 剩余未抽: <span id="val-remaining-draws">--</span></div>
+            </div>
+            <div class="data-card border-t-4 border-red-800">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="data-label">奖品累计发放成本</div>
+                        <div class="data-value text-red-800">¥<span id="val-total-cost">--</span></div>
+                    </div>
+                    <i class="ph-fill ph-money text-2xl text-gray-300"></i>
+                </div>
+                <div class="text-[10px] text-gray-400 mt-4">平均每位获客成本(CAC): ¥<span id="val-cac" class="font-bold">--</span></div>
+            </div>
+            <div class="data-card border-t-4 border-blue-600">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="data-label">分享裂变参与人数</div>
+                        <div class="data-value text-blue-600" id="val-total-sharers">--</div>
+                    </div>
+                    <i class="ph-fill ph-share-network text-2xl text-gray-300"></i>
+                </div>
+                <div class="text-[10px] text-gray-400 mt-4">带来访客: <span id="val-share-clicks" class="font-bold">--</span> | 促成注册: <span id="val-share-registers" class="font-bold">--</span></div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            
-            <div class="premium-card flex flex-col h-[700px]">
-                <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
-                    <div>
-                        <h2 class="text-sm font-bold tracking-widest uppercase flex items-center gap-2 text-gray-800">
-                            抽奖权限管理库
-                        </h2>
-                        <p class="text-[11px] text-gray-400 mt-1">控制用户抽奖次数</p>
-                    </div>
-                    <div class="relative">
-                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                        <input type="text" id="userSearch" oninput="handleUserSearch(this.value)" placeholder="搜索手机号..." class="pl-9 pr-4 py-1.5 text-xs border border-gray-200 rounded bg-gray-50 focus:bg-white focus:outline-none focus:border-black transition w-48">
-                    </div>
-                </div>
-                
-                <div id="usersList" class="flex-grow overflow-y-auto space-y-3 pr-2"></div>
-
-                <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
-                    <div class="text-xs text-gray-400" id="userPageInfo"></div>
-                    <div class="flex gap-2" id="userPagination"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- 客户转化漏斗 -->
+            <div class="data-card h-[400px] flex flex-col">
+                <h3 class="text-sm font-bold tracking-widest text-gray-800 uppercase flex items-center gap-2 mb-6">
+                    <i class="ph-fill ph-funnel text-[#8C6A4F]"></i> 客户成交漏斗模型
+                </h3>
+                <div class="flex-grow flex items-center justify-center">
+                    <canvas id="funnelChart"></canvas>
                 </div>
             </div>
 
-            <div class="premium-card flex flex-col h-[700px]">
-                <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
-                    <div>
-                        <h2 class="text-sm font-bold tracking-widest uppercase flex items-center gap-2 text-gray-800">
-                            高级奖品陈列配置
-                        </h2>
-                        <p class="text-[11px] text-gray-400 mt-1">管理大转盘上的奖品内容与中奖权重</p>
-                    </div>
-                    <button onclick="addPrize()" class="border border-gray-300 text-gray-700 text-xs px-3 py-1.5 rounded hover:bg-gray-50 flex items-center gap-1 transition">
-                        <i class="ph ph-plus"></i> 新增
-                    </button>
-                </div>
-                <div id="prizesList" class="flex-grow overflow-y-auto space-y-3 pr-2"></div>
-                <div class="mt-4 pt-4 border-t border-gray-100 flex justify-end">
-                    <button onclick="savePrizes()" class="bg-[#1A1A1A] text-white px-6 py-2.5 rounded text-xs font-bold tracking-widest hover:bg-[#8C6A4F] transition">
-                        同步奖品池
-                    </button>
+            <!-- 奖品消耗与成本监控 -->
+            <div class="data-card h-[400px] flex flex-col">
+                <h3 class="text-sm font-bold tracking-widest text-gray-800 uppercase flex items-center gap-2 mb-4 pb-2 border-b border-gray-100">
+                    <i class="ph-fill ph-gift text-[#8C6A4F]"></i> 奖品发放量与成本溯源
+                </h3>
+                <div class="flex-grow overflow-y-auto pr-2" id="prizeCostList">
+                    <!-- JS Render -->
                 </div>
             </div>
         </div>
@@ -164,137 +111,70 @@
     <script>
         const token = localStorage.getItem('token');
         if (!token) window.location.href = '/login.html';
-        const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
-        
-        let currentData = { prizes: [], users: [] };
-        let userSearchQuery = "";
-        let userCurrentPage = 1;
-        const userPageSize = 10;
+        const headers = { 'Authorization': token };
 
-        async function init() {
+        async function initDashboard() {
             try {
-                const cfgRes = await fetch('/api/config');
-                const config = await cfgRes.json();
-                document.getElementById('configTitle').value = config.title || '';
-                document.getElementById('configSubtitle').value = config.subtitle || '';
-                document.getElementById('configPaymentCopy').value = config.paymentCopy || '';
-                document.getElementById('configQrCodeUrl').value = config.qrCodeUrl || '';
-                document.getElementById('logoColorUrl').value = config.logoColorUrl || '';
-                document.getElementById('logoBlackUrl').value = config.logoBlackUrl || '';
-                document.getElementById('logoWhiteUrl').value = config.logoWhiteUrl || '';
-
-                const res = await fetch('/api/admin/users', { headers });
+                const res = await fetch('/api/admin/dashboard', { headers });
                 if (res.status === 403) return logout();
-                currentData = await res.json();
-                
-                if(currentData.admin) document.getElementById('adminPhoneInput').value = currentData.admin.phone;
+                const data = await res.json();
 
-                renderPrizes();
-                renderUsers();
-            } catch(e) { console.error("Data load error", e); }
-        }
+                // 渲染顶部数据
+                document.getElementById('val-total-users').innerText = data.users.total;
+                document.getElementById('val-today-users').innerText = data.users.today;
+                document.getElementById('val-total-draws').innerText = data.draws.total;
+                document.getElementById('val-today-draws').innerText = data.draws.today;
+                document.getElementById('val-remaining-draws').innerText = data.draws.remaining;
+                document.getElementById('val-total-cost').innerText = data.roi.totalCost;
+                document.getElementById('val-cac').innerText = data.roi.cac;
+                document.getElementById('val-total-sharers').innerText = data.shares.sharers;
+                document.getElementById('val-share-clicks').innerText = data.shares.clicks;
+                document.getElementById('val-share-registers').innerText = data.shares.registers;
 
-        async function saveConfig() {
-            const payload = {
-                title: document.getElementById('configTitle').value, subtitle: document.getElementById('configSubtitle').value,
-                paymentCopy: document.getElementById('configPaymentCopy').value, qrCodeUrl: document.getElementById('configQrCodeUrl').value,
-                logoColorUrl: document.getElementById('logoColorUrl').value, logoBlackUrl: document.getElementById('logoBlackUrl').value, logoWhiteUrl: document.getElementById('logoWhiteUrl').value
-            };
-            await fetch('/api/config', { method: 'POST', headers, body: JSON.stringify(payload) });
-            alert('品牌配置已保存！');
-        }
-
-        function renderPrizes() {
-            document.getElementById('prizesList').innerHTML = currentData.prizes.map((p, i) => `
-                <div class="flex gap-4 items-center bg-[#FAFAFA] p-4 border border-[#EEEEEE] rounded hover:shadow-sm transition-shadow group">
-                    <div class="flex-1">
-                        <label class="text-[10px] text-gray-400 mb-1 block">奖品名称</label>
-                        <input type="text" value="${p.name}" onchange="currentData.prizes[${i}].name=this.value" class="w-full border-b border-gray-200 py-1 text-sm bg-transparent focus:border-[#8C6A4F] focus:outline-none transition">
-                    </div>
-                    <div class="w-24">
-                        <label class="text-[10px] text-gray-400 mb-1 block">权重</label>
-                        <input type="number" value="${p.weight}" onchange="currentData.prizes[${i}].weight=Number(this.value)" class="w-full border-b border-gray-200 py-1 text-sm bg-transparent text-center focus:border-[#8C6A4F] focus:outline-none transition">
-                    </div>
-                    <button onclick="currentData.prizes.splice(${i}, 1); renderPrizes()" class="mt-4 text-gray-300 hover:text-red-500 transition" title="删除奖品">
-                        <i class="ph ph-trash text-lg"></i>
-                    </button>
-                </div>
-            `).join('');
-        }
-        function addPrize() { currentData.prizes.push({ name: "NEW GIFT - 新奖品", weight: 10 }); renderPrizes(); }
-        async function savePrizes() { await fetch('/api/admin/prizes', { method: 'POST', headers, body: JSON.stringify(currentData.prizes) }); alert('奖品库已同步至大转盘！'); }
-
-        function handleUserSearch(query) {
-            userSearchQuery = query.trim();
-            userCurrentPage = 1;
-            renderUsers();
-        }
-
-        function renderUsers() {
-            let filteredUsers = currentData.users;
-            if (userSearchQuery) filteredUsers = filteredUsers.filter(u => u.phone.includes(userSearchQuery));
-
-            const total = filteredUsers.length;
-            const totalPages = Math.ceil(total / userPageSize) || 1;
-            if (userCurrentPage > totalPages) userCurrentPage = totalPages;
-            
-            const start = (userCurrentPage - 1) * userPageSize;
-            const paginatedUsers = filteredUsers.slice(start, start + userPageSize);
-
-            document.getElementById('usersList').innerHTML = paginatedUsers.map(u => `
-                <div class="flex items-center justify-between p-4 border border-[#EEEEEE] rounded bg-white hover:border-[#8C6A4F]/50 transition-all">
-                    <div>
-                        <div class="font-bold text-sm text-gray-800">${u.phone}</div>
-                        <div class="text-[10px] text-gray-400 mt-1 flex gap-3">
-                            <span>注册: ${u.registerTime ? u.registerTime.split(' ')[0] : '-'}</span>
-                            <span>已中奖: ${u.rewards ? u.rewards.length : 0} 次</span>
+                // 渲染奖品成本列表
+                const prizeListHtml = Object.entries(data.prizes).sort((a,b) => b[1].cost - a[1].cost).map(([name, stat]) => `
+                    <div class="flex justify-between items-center py-3 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition px-2 rounded">
+                        <div>
+                            <div class="text-xs font-bold text-gray-800">${name}</div>
+                            <div class="text-[10px] text-gray-400 mt-1">单价成本: ¥${stat.cost > 0 ? (stat.cost/stat.count).toFixed(0) : 0}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm font-bold text-red-800 font-mono">¥${stat.cost}</div>
+                            <div class="text-[10px] text-gray-500 mt-1">已发出 ${stat.count} 份</div>
                         </div>
                     </div>
-                    <div class="flex gap-4 items-center">
-                        <div class="flex flex-col items-center">
-                            <span class="text-[10px] text-gray-400 mb-1">抽奖机会</span>
-                            <div class="border border-gray-200 rounded">
-                                <input type="number" value="${u.chances}" onchange="updateUserChanceAPI('${u.phone}', this.value)" class="w-12 py-1 text-sm text-center focus:outline-none focus:bg-gray-50 bg-transparent font-bold text-[#8C6A4F]">
-                            </div>
-                        </div>
-                        <button onclick="resetUserRewards('${u.phone}')" class="text-xs text-gray-400 hover:text-red-500 border border-gray-200 hover:border-red-200 px-2 py-1.5 rounded transition">清空</button>
-                    </div>
-                </div>
-            `).join('') || `<div class="text-center text-xs text-gray-400 py-10">未找到匹配的客户</div>`;
+                `).join('');
+                document.getElementById('prizeCostList').innerHTML = prizeListHtml;
 
-            document.getElementById('userPageInfo').innerText = `共 ${total} 人，第 ${userCurrentPage}/${totalPages} 页`;
-            document.getElementById('userPagination').innerHTML = `
-                <button onclick="userCurrentPage--; renderUsers()" ${userCurrentPage === 1 ? 'disabled' : ''} class="px-2 py-1 border rounded text-xs disabled:opacity-30">上一页</button>
-                <button onclick="userCurrentPage++; renderUsers()" ${userCurrentPage === totalPages ? 'disabled' : ''} class="px-2 py-1 border rounded text-xs disabled:opacity-30">下一页</button>
-            `;
-        }
+                // 渲染漏斗图表
+                const ctx = document.getElementById('funnelChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar', // 使用横向条形图模拟漏斗
+                    data: {
+                        labels: Object.keys(data.funnel),
+                        datasets: [{
+                            label: '处于该阶段的客户数量',
+                            data: Object.values(data.funnel),
+                            backgroundColor: ['#E4E4E7', '#FDE68A', '#BAE6FD', '#E9D5FF', '#BBF7D0', '#166534', '#FCA5A5'],
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { x: { beginAtZero: true, grid: {display: false} }, y: { grid: {display: false} } }
+                    }
+                });
 
-        async function updateUserChanceAPI(phone, newChance) {
-            try {
-                await fetch(`/api/admin/users/${phone}/chances`, { method: 'PUT', headers, body: JSON.stringify({ chances: Number(newChance) }) });
-                const index = currentData.users.findIndex(u => u.phone === phone);
-                if(index > -1) currentData.users[index].chances = Number(newChance);
-            } catch(e) { alert('更新次数失败'); }
-        }
-
-        async function resetUserRewards(phone) {
-            if(!confirm(`确定要清空 ${phone} 的所有中奖记录？`)) return;
-            await fetch('/api/admin/reset-rewards', { method: 'POST', headers, body: JSON.stringify({ phone }) });
-            alert('已重置');
-            init(); 
-        }
-
-        async function saveAdminAccount() {
-            const phone = document.getElementById('adminPhoneInput').value;
-            const password = document.getElementById('adminPasswordInput').value;
-            if(!phone) return;
-            await fetch('/api/admin/account', { method: 'POST', headers, body: JSON.stringify({ phone, password }) });
-            alert('凭证已更新。');
-            if(phone !== localStorage.getItem('token')) localStorage.setItem('token', phone);
+            } catch (e) {
+                console.error("加载数据失败", e);
+            }
         }
 
         function logout() { localStorage.removeItem('token'); window.location.href = '/login.html'; }
-        init();
+        initDashboard();
     </script>
 </body>
 </html>

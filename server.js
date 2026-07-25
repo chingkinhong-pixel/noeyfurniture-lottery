@@ -98,7 +98,7 @@ async function initData() {
         }
         if (await Config.countDocuments() === 0) {
             await Config.create({ 
-                identifier: "global", title: "定制梦想空间 赢取专属家居礼遇", subtitle: "完成定制家具预约，即可参与幸运抽奖",
+                identifier: "global", title: "NOEY 幸运礼遇", subtitle: "为每一位选择诺一家具的客户，准备专属定制礼物。",
                 paymentCopy: "尊享专属设计方案，支付定金即刻解锁至臻礼遇。请扫码支付后联系您的专属设计师为您录入抽奖次数。", 
                 qrCodeUrl: "https://cdn.phototourl.com/free/2026-07-18-98c9e787-a88e-4b7d-969f-3cb31603a68c.png",
                 rules: [{ condition: "设计方案定金", value: "3000元", reward: "1次" }, { condition: "家具订单", value: "20000元", reward: "3次" }, { condition: "整屋定制", value: "50000元以上", reward: "8次" }],

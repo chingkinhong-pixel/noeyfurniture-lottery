@@ -22,7 +22,6 @@ mongoose.connect(MONGODB_URI)
 // ==========================================
 // 2. 定义数据模型 (Schema)
 // ==========================================
-// 核心用户表
 const userSchema = new mongoose.Schema({
     phone: { type: String, required: true, unique: true },
     password: { type: String, default: "" },
@@ -31,11 +30,14 @@ const userSchema = new mongoose.Schema({
     registerTime: { type: String, default: () => new Date().toLocaleString() },
     rewards: [{ name: String, time: String }],
     pendingPrize: { type: String, default: "" }, 
-    claimInfo: { userName: String, city: String, stage: String, layout: String, budget: String }
+    claimInfo: { userName: String, city: String, stage: String, layout: String, budget: String },
+    // 【新增】分享裂变相关字段
+    shareStatus: { type: Number, default: 0 }, // 0: 未完成任务, 1: 已完成(已加次数)
+    invitees: [{ type: String }],              // 邀请注册成功的好友手机号列表
+    clickCount: { type: Number, default: 0 }   // 专属链接被点击的次数
 });
 const User = mongoose.model('User', userSchema);
 
-// 独立的客户跟进表
 const customerSchema = new mongoose.Schema({
     phone: { type: String, required: true, unique: true },
     name: { type: String, default: "-" },
@@ -50,7 +52,6 @@ const customerSchema = new mongoose.Schema({
 });
 const Customer = mongoose.model('Customer', customerSchema);
 
-// 独立的中奖记录表
 const rewardRecordSchema = new mongoose.Schema({
     phone: { type: String, required: true },
     userName: { type: String, default: "-" },
@@ -120,7 +121,6 @@ app.get('/api/stats', async (req, res) => {
     res.json({ totalUsers: users.length, totalRewards: users.reduce((sum, u) => sum + u.rewards.length, 0) });
 });
 
-// [新增] 获取最新中奖名单用于前端滚动展示 (脱敏处理，保护隐私)
 app.get('/api/public/winners', async (req, res) => {
     try {
         const records = await RewardRecord.find({}).sort({ winTime: -1 }).limit(50);
@@ -135,9 +135,18 @@ app.get('/api/public/winners', async (req, res) => {
     }
 });
 
+// 【新增】处理分享链接被点击，增加分享人的访问量
+app.post('/api/invite/click', async (req, res) => {
+    const { invite } = req.body;
+    if (invite) {
+        await User.updateOne({ phone: invite, role: 'user' }, { $inc: { clickCount: 1 } }).catch(()=>{});
+    }
+    res.json({ success: true });
+});
+
 app.post('/api/login', async (req, res) => {
     try {
-        const { phone, password, isAdminLogin } = req.body;
+        const { phone, password, isAdminLogin, invite } = req.body;
         let user = await User.findOne({ phone: phone });
 
         if (isAdminLogin) {
@@ -145,10 +154,30 @@ app.post('/api/login', async (req, res) => {
             return res.json({ token: user.phone, role: user.role });
         } else {
             if (user && user.role === 'admin') return res.status(403).json({ error: '管理员请通过专属通道登录' });
+            
+            // 【修改】如果是新用户，处理裂变邀请逻辑
             if (!user) {
                 user = await User.create({ phone, role: 'user', chances: 1, rewards: [], pendingPrize: "", registerTime: new Date().toLocaleString() });
+                
+                // 处理邀请人奖励
+                if (invite && invite !== phone) {
+                    const inviter = await User.findOne({ phone: invite, role: 'user' });
+                    if (inviter && !inviter.invitees.includes(phone)) {
+                        inviter.invitees.push(phone);
+                        // 当达到3人且任务未完成时，发放1次抽奖机会奖励
+                        if (inviter.invitees.length >= 3 && inviter.shareStatus === 0) {
+                            inviter.chances += 1;
+                            inviter.shareStatus = 1; 
+                        }
+                        await inviter.save();
+                    }
+                }
             }
-            await Customer.findOneAndUpdate({ phone }, { $setOnInsert: { phone, registerTime: user.registerTime } }, { upsert: true });
+            await Customer.findOneAndUpdate(
+                { phone }, 
+                { $setOnInsert: { phone, registerTime: user.registerTime, source: invite ? `好友邀请(${invite})` : '抽奖活动' } }, 
+                { upsert: true }
+            );
             return res.json({ token: user.phone, role: user.role });
         }
     } catch (err) { res.status(500).json({ error: '服务器错误' }); }
@@ -197,11 +226,6 @@ app.post('/api/claim', async (req, res) => {
         await user.save();
 
         let cleanName = userName;
-        if(userName.includes('先生') || userName.includes('女士')) {
-            // Keep as is
-        } else {
-            // Optional: Auto append if needed, but keeping original input is safer.
-        }
 
         await Customer.findOneAndUpdate(
             { phone: user.phone },
@@ -237,23 +261,15 @@ app.post('/api/admin/account', requireAdmin, async (req, res) => {
     if (admin) { admin.phone = req.body.phone; if (req.body.password) admin.password = req.body.password; await admin.save(); }
     res.json({ success: true });
 });
-
 app.post('/api/admin/prizes', requireAdmin, async (req, res) => {
     await Prize.deleteMany({}); await Prize.insertMany(req.body); res.json({ success: true });
 });
-
-// 用户管理 API 
 app.get('/api/admin/users', requireAdmin, async (req, res) => {
     const users = await User.find({ role: 'user' }).select('phone chances registerTime rewards');
     const admin = await User.findOne({ role: 'admin' }).select('phone');
     const prizes = await Prize.find();
     res.json({ users, admin, prizes });
 });
-app.post('/api/admin/users', requireAdmin, async (req, res) => {
-    for (let u of req.body) { if (u.phone && u.role !== 'admin') await User.updateOne({ phone: u.phone }, { chances: u.chances }); }
-    res.json({ success: true });
-});
-// 独立的更新单个用户次数接口 (优化分页操作)
 app.put('/api/admin/users/:phone/chances', requireAdmin, async (req, res) => {
     await User.updateOne({ phone: req.params.phone, role: 'user' }, { chances: req.body.chances });
     res.json({ success: true });
@@ -263,8 +279,6 @@ app.post('/api/admin/reset-rewards', requireAdmin, async (req, res) => {
     await RewardRecord.deleteMany({ phone: req.body.phone });
     res.json({ success: true });
 });
-
-// 独立的客户跟进管理 API
 app.get('/api/admin/customers', requireAdmin, async (req, res) => {
     const allUsers = await User.find({ role: 'user' });
     for (let u of allUsers) {
@@ -281,8 +295,6 @@ app.put('/api/admin/customers/:phone', requireAdmin, async (req, res) => {
     await Customer.updateOne({ phone: req.params.phone }, req.body);
     res.json({ success: true });
 });
-
-// 独立的中奖记录管理 API
 app.get('/api/admin/rewards', requireAdmin, async (req, res) => {
     const records = await RewardRecord.find().sort({ winTime: -1 });
     res.json(records);
@@ -290,6 +302,16 @@ app.get('/api/admin/rewards', requireAdmin, async (req, res) => {
 app.put('/api/admin/rewards/:id', requireAdmin, async (req, res) => {
     await RewardRecord.findByIdAndUpdate(req.params.id, { claimStatus: req.body.claimStatus });
     res.json({ success: true });
+});
+
+// 【新增】获取分享裂变管理列表
+app.get('/api/admin/shares', requireAdmin, async (req, res) => {
+    // 找出所有点击量大于0，或者成功邀请过人的用户
+    const shares = await User.find({ 
+        role: 'user', 
+        $or: [{ clickCount: { $gt: 0 } }, { 'invitees.0': { $exists: true } }] 
+    }).select('phone shareStatus clickCount invitees registerTime').sort({ 'invitees.length': -1, clickCount: -1 });
+    res.json(shares);
 });
 
 const PORT = process.env.PORT || 3000;

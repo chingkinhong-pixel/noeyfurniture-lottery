@@ -6,6 +6,7 @@
     <title>NOEY - 客户跟进 CRM</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body { background-color: #F9F9F9; font-family: -apple-system, sans-serif; color: #1A1A1A; }
         .nav-link { color: #71717A; padding-bottom: 12px; font-size: 14px; letter-spacing: 0.1em; transition: all 0.3s; border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 6px; }
@@ -16,13 +17,14 @@
         .table-row { transition: background-color 0.2s; background: white;}
         .table-row:hover { background-color: #FAFAFA; }
         
-        /* NOEY 极简标签颜色 */
         .tag-新客户 { background: #F4F4F5; color: #52525B; border: 1px solid #E4E4E7; }
-        .tag-待联系 { background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; }
-        .tag-已联系 { background: #E0F2FE; color: #0369A1; border: 1px solid #BAE6FD; }
-        .tag-已预约设计 { background: #F3E8FF; color: #6B21A8; border: 1px solid #E9D5FF; }
+        .tag-未联系 { background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
+        .tag-已咨询 { background: #FFFBEB; color: #92400E; border: 1px solid #FDE68A; }
+        .tag-已量房 { background: #E0F2FE; color: #0369A1; border: 1px solid #BAE6FD; }
+        .tag-已报价 { background: #F3E8FF; color: #6B21A8; border: 1px solid #E9D5FF; }
         .tag-已成交 { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
-        .tag-暂无需求 { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
+        .tag-已完成安装 { background: #D1FAE5; color: #14532D; border: 1px solid #86EFAC; }
+        .tag-暂无需求 { background: #F3F4F6; color: #4B5563; border: 1px solid #D1D5DB; }
     </style>
 </head>
 <body class="min-h-screen pb-12">
@@ -31,12 +33,14 @@
         <div class="max-w-[1400px] mx-auto px-6 pt-6 flex justify-between items-end">
             <div>
                 <h1 class="text-xl font-bold tracking-widest mb-6 flex items-center gap-2">
-                    <i class="ph-fill ph-leaf text-[#8C6A4F]"></i> NOEY CRM
+                    <i class="ph-fill ph-users text-[#8C6A4F]"></i> NOEY CRM
                 </h1>
                 <nav class="flex space-x-8">
-                    <a href="admin.html" class="nav-link"><i class="ph ph-faders text-lg"></i> 基础设置与资产</a>
+                    <a href="admin.html" class="nav-link"><i class="ph ph-chart-pie-slice text-lg"></i> 营销数据驾驶舱</a>
+                    <a href="settings.html" class="nav-link"><i class="ph ph-faders text-lg"></i> 基础设置与资产</a>
                     <a href="customer-management.html" class="nav-link active"><i class="ph ph-users text-lg"></i> 客户跟进 CRM</a>
                     <a href="reward-records.html" class="nav-link"><i class="ph ph-gift text-lg"></i> 中奖流水库</a>
+                    <a href="share-management.html" class="nav-link"><i class="ph ph-share-network text-lg"></i> 分享裂变管理</a>
                 </nav>
             </div>
             <button onclick="logout()" class="mb-6 text-xs text-gray-500 hover:text-black tracking-widest uppercase transition flex items-center gap-1">
@@ -50,40 +54,40 @@
             
             <div class="flex justify-between items-center p-6 border-b border-gray-100">
                 <div class="flex items-center gap-4">
-                    <h2 class="text-base font-bold text-gray-800 flex items-center gap-2">
-                        独立客户档案
-                    </h2>
+                    <h2 class="text-base font-bold text-gray-800 flex items-center gap-2">客户线索流转系统</h2>
                     <div class="relative ml-4">
                         <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                         <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="搜索姓名或手机号..." class="pl-9 pr-4 py-2 text-xs border border-gray-200 rounded bg-gray-50 focus:bg-white focus:outline-none focus:border-black transition w-64">
                     </div>
                 </div>
-                <button onclick="loadCustomers()" class="text-xs text-gray-600 bg-white hover:bg-gray-50 border border-gray-200 px-4 py-2 rounded transition shadow-sm flex items-center gap-1">
-                    <i class="ph ph-arrows-clockwise text-base"></i> 刷新
-                </button>
+                <div class="flex gap-2">
+                    <button onclick="exportToExcel()" class="text-xs text-white bg-green-700 hover:bg-green-800 px-4 py-2 rounded transition shadow-sm flex items-center gap-1">
+                        <i class="ph ph-microsoft-excel-logo text-base"></i> 导出 Excel
+                    </button>
+                    <button onclick="loadCustomers()" class="text-xs text-gray-600 bg-white hover:bg-gray-50 border border-gray-200 px-4 py-2 rounded transition shadow-sm flex items-center gap-1">
+                        <i class="ph ph-arrows-clockwise text-base"></i> 刷新
+                    </button>
+                </div>
             </div>
             
             <div class="overflow-x-auto min-h-[500px]">
-                <table class="w-full text-left border-collapse min-w-[1100px]">
+                <table class="w-full text-left border-collapse min-w-[1200px]">
                     <thead>
                         <tr>
-                            <th class="table-header w-48">客户基础信息</th>
-                            <th class="table-header w-32">来源</th>
-                            <th class="table-header w-56">消费意向</th>
-                            <th class="table-header w-32">需求类型</th>
-                            <th class="table-header w-40">跟进状态</th>
-                            <th class="table-header">系统备注</th>
+                            <th class="table-header w-40">客户档案</th>
+                            <th class="table-header w-24">线索来源</th>
+                            <th class="table-header w-48">定制需求意向</th>
+                            <th class="table-header w-32">客户类型标签</th>
+                            <th class="table-header w-36">跟进成交漏斗</th>
+                            <th class="table-header">销售跟进记录 (实时保存)</th>
                         </tr>
                     </thead>
-                    <tbody id="customerTableBody">
-                        <!-- JS 渲染区 -->
-                    </tbody>
+                    <tbody id="customerTableBody"></tbody>
                 </table>
             </div>
 
-            <!-- 分页栏 -->
             <div class="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center text-sm">
-                <div class="text-gray-500" id="pageInfo"></div>
+                <div class="text-[11px] text-gray-500" id="pageInfo"></div>
                 <div class="flex gap-2" id="paginationControls"></div>
             </div>
         </div>
@@ -94,52 +98,32 @@
         if (!token) window.location.href = '/login.html';
         const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
         
-        const statusOptions = ['新客户', '待联系', '已联系', '已预约设计', '已成交', '暂无需求'];
-        const needTypeOptions = ['未确定', '全屋定制', '柜类定制', '单品家具', '设计方案'];
+        const statusOptions = ['新客户', '未联系', '已咨询', '已量房', '已报价', '已成交', '已完成安装', '暂无需求'];
+        const tagOptions = ['普通客户', '潜在客户', '高意向客户', '成交客户', '老客户推荐'];
 
-        let allCustomers = [];
-        let searchQuery = "";
-        let currentPage = 1;
-        const pageSize = 15;
+        let allCustomers = []; let searchQuery = ""; let currentPage = 1; const pageSize = 15;
 
         async function loadCustomers() {
             document.getElementById('customerTableBody').innerHTML = `<tr><td colspan="6" class="text-center py-16 text-gray-400 text-sm">加载中...</td></tr>`;
             try {
-                const res = await fetch('/api/admin/customers', { headers });
-                if (res.status === 403) return logout();
-                allCustomers = await res.json();
-                renderCustomers();
+                const res = await fetch('/api/admin/customers', { headers }); if (res.status === 403) return logout();
+                allCustomers = await res.json(); renderCustomers();
             } catch(e) { console.error(e); }
         }
 
-        function handleSearch(query) {
-            searchQuery = query.trim().toLowerCase();
-            currentPage = 1; // 搜索时重置页码
-            renderCustomers();
-        }
+        function handleSearch(query) { searchQuery = query.trim().toLowerCase(); currentPage = 1; renderCustomers(); }
 
         function renderCustomers() {
-            // 1. 过滤
             let filtered = allCustomers;
-            if (searchQuery) {
-                filtered = filtered.filter(c => 
-                    (c.name && c.name.toLowerCase().includes(searchQuery)) || 
-                    (c.phone && c.phone.includes(searchQuery))
-                );
-            }
+            if (searchQuery) filtered = filtered.filter(c => (c.name && c.name.toLowerCase().includes(searchQuery)) || (c.phone && c.phone.includes(searchQuery)));
 
-            // 2. 分页
-            const total = filtered.length;
-            const totalPages = Math.ceil(total / pageSize) || 1;
+            const total = filtered.length; const totalPages = Math.ceil(total / pageSize) || 1;
             if (currentPage > totalPages) currentPage = totalPages;
-            
-            const start = (currentPage - 1) * pageSize;
-            const paginated = filtered.slice(start, start + pageSize);
+            const start = (currentPage - 1) * pageSize; const paginated = filtered.slice(start, start + pageSize);
 
-            // 3. 渲染列表
             const tbody = document.getElementById('customerTableBody');
             if(paginated.length === 0) {
-                 tbody.innerHTML = `<tr><td colspan="6" class="text-center py-16 text-gray-400 text-sm">未找到匹配的客户</td></tr>`;
+                 tbody.innerHTML = `<tr><td colspan="6" class="text-center py-16 text-gray-400 text-sm">无匹配记录</td></tr>`;
             } else {
                 tbody.innerHTML = paginated.map(c => `
                     <tr class="table-row">
@@ -148,9 +132,7 @@
                             <div class="text-[11px] text-[#8C6A4F] font-mono mb-1">${c.phone}</div>
                             <div class="text-[10px] text-gray-400">${c.registerTime.split(' ')[0]}</div>
                         </td>
-                        <td class="table-cell">
-                            <span class="text-[11px] text-gray-500 bg-gray-100 px-2 py-1 rounded border border-gray-200">${c.source}</span>
-                        </td>
+                        <td class="table-cell"><span class="text-[10px] text-gray-500 bg-gray-100 px-2 py-1 rounded border border-gray-200">${c.source}</span></td>
                         <td class="table-cell">
                             <div class="flex flex-col gap-1.5 text-[11px]">
                                 <span class="text-gray-600"><span class="text-gray-400 w-8 inline-block">阶段:</span> ${c.stage}</span>
@@ -159,45 +141,61 @@
                             </div>
                         </td>
                         <td class="table-cell">
-                            <select onchange="updateCustomer('${c.phone}', 'needType', this.value)" class="text-xs border border-gray-200 rounded p-1.5 focus:outline-none focus:border-black bg-gray-50 hover:bg-white transition w-full">
-                                ${needTypeOptions.map(opt => `<option value="${opt}" ${c.needType === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                            <select onchange="updateTag('${c.phone}', this.value)" class="text-[11px] border border-gray-200 rounded p-1.5 focus:outline-none focus:border-black bg-white transition w-full">
+                                <option value="">+ 添加分类标签</option>
+                                ${tagOptions.map(opt => `<option value="${opt}" ${(c.tags && c.tags.includes(opt)) ? 'selected' : ''}>${opt}</option>`).join('')}
                             </select>
                         </td>
                         <td class="table-cell">
-                            <select onchange="updateCustomer('${c.phone}', 'followUpStatus', this.value)" class="text-xs font-bold rounded px-2 py-1.5 focus:outline-none cursor-pointer tag-${c.followUpStatus} w-full text-center">
+                            <select onchange="updateCustomer('${c.phone}', 'followUpStatus', this.value)" class="text-xs font-bold rounded px-2 py-1.5 focus:outline-none cursor-pointer tag-${c.followUpStatus || '新客户'} w-full text-center">
                                 ${statusOptions.map(opt => `<option value="${opt}" ${c.followUpStatus === opt ? 'selected' : ''}>${opt}</option>`).join('')}
                             </select>
                         </td>
                         <td class="table-cell">
-                            <textarea onblur="updateCustomer('${c.phone}', 'remark', this.value)" class="w-full text-xs border border-gray-200 rounded p-2 h-16 resize-none focus:outline-none focus:border-black bg-gray-50 focus:bg-white transition" placeholder="填写跟进记录...">${c.remark}</textarea>
+                            <textarea onblur="updateCustomer('${c.phone}', 'remark', this.value)" class="w-full text-xs border border-gray-200 rounded p-2 h-16 resize-none focus:outline-none focus:border-[#8C6A4F] bg-gray-50 focus:bg-white transition leading-relaxed" placeholder="如: 7-22: 客户喜欢极简，已邀约到店看方案">${c.remark}</textarea>
                         </td>
-                    </tr>
-                `).join('');
+                    </tr>`).join('');
             }
 
-            // 4. 渲染分页控件
-            document.getElementById('pageInfo').innerText = `共 ${total} 条数据，当前第 ${currentPage} 页 / 共 ${totalPages} 页`;
+            document.getElementById('pageInfo').innerText = `共 ${total} 人，第 ${currentPage} / ${totalPages} 页`;
             document.getElementById('paginationControls').innerHTML = `
-                <button onclick="currentPage--; renderCustomers()" ${currentPage === 1 ? 'disabled' : ''} class="px-3 py-1 bg-white border border-gray-200 rounded text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition">上一页</button>
-                <button onclick="currentPage++; renderCustomers()" ${currentPage === totalPages ? 'disabled' : ''} class="px-3 py-1 bg-white border border-gray-200 rounded text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition">下一页</button>
-            `;
+                <button onclick="currentPage--; renderCustomers()" ${currentPage === 1 ? 'disabled' : ''} class="px-2 py-1 bg-white border border-gray-200 rounded text-xs hover:bg-gray-50 disabled:opacity-50 transition">上一页</button>
+                <button onclick="currentPage++; renderCustomers()" ${currentPage === totalPages ? 'disabled' : ''} class="px-2 py-1 bg-white border border-gray-200 rounded text-xs hover:bg-gray-50 disabled:opacity-50 transition">下一页</button>`;
         }
 
         async function updateCustomer(phone, field, value) {
             const body = {}; body[field] = value;
             try {
                 await fetch(`/api/admin/customers/${phone}`, { method: 'PUT', headers, body: JSON.stringify(body) });
-                
-                // 本地数据同步更新，防止翻页后数据回退
-                const idx = allCustomers.findIndex(c => c.phone === phone);
-                if(idx > -1) allCustomers[idx][field] = value;
-
-                if(field === 'followUpStatus') renderCustomers(); // 刷新颜色
+                const idx = allCustomers.findIndex(c => c.phone === phone); if(idx > -1) allCustomers[idx][field] = value;
+                if(field === 'followUpStatus') renderCustomers(); 
             } catch(e) { alert('更新失败'); }
         }
 
+        async function updateTag(phone, tag) {
+            if(!tag) return;
+            const body = { tags: [tag] }; // 简易单选覆盖逻辑
+            try {
+                await fetch(`/api/admin/customers/${phone}`, { method: 'PUT', headers, body: JSON.stringify(body) });
+                const idx = allCustomers.findIndex(c => c.phone === phone); if(idx > -1) allCustomers[idx].tags = [tag];
+            } catch(e) { alert('贴标签失败'); }
+        }
+
+        // 导出 Excel 功能
+        function exportToExcel() {
+            if(allCustomers.length === 0) return alert('没有可导出的数据');
+            const dataToExport = allCustomers.map(c => ({
+                "客户姓名": c.name, "联系电话": c.phone, "注册时间": c.registerTime, "线索来源": c.source,
+                "装修阶段": c.stage, "意向预算": c.budget, "房屋户型": c.layout, "意向需求": c.needType,
+                "客户标签": c.tags ? c.tags.join('、') : '', "跟进状态": c.followUpStatus || '新客户', "最新销售备注": c.remark
+            }));
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "客户线索表");
+            XLSX.writeFile(wb, `NOEY_CRM客户导出_${new Date().toLocaleDateString().replace(/\//g,'-')}.xlsx`);
+        }
+
         function logout() { localStorage.removeItem('token'); window.location.href = '/login.html'; }
-        
         loadCustomers();
     </script>
 </body>

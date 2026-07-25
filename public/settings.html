@@ -17,7 +17,6 @@
     </style>
 </head>
 <body class="min-h-screen pb-12">
-    
     <header class="bg-white border-b border-[#EEEEEE] sticky top-0 z-50 shadow-sm">
         <div class="max-w-[1400px] mx-auto px-6 pt-6 flex justify-between items-end">
             <div>
@@ -39,17 +38,17 @@
     </header>
 
     <div class="max-w-[1400px] mx-auto px-6 py-8">
-        
         <div class="premium-card mb-8">
             <h2 class="text-sm font-bold mb-6 tracking-widest text-gray-800 uppercase flex items-center gap-2 pb-3 border-b border-gray-100">
-                <i class="ph ph-paint-brush-broad text-[#8C6A4F] text-lg"></i> 品牌营销与资产配置
+                <i class="ph ph-paint-brush-broad text-[#8C6A4F] text-lg"></i> 首页品牌内容配置
             </h2>
             
             <div class="grid grid-cols-1 xl:grid-cols-3 gap-10">
                 <div class="xl:col-span-2 space-y-6">
                     <div class="grid grid-cols-2 gap-6">
-                        <div><label class="block text-[11px] font-bold text-gray-500 mb-2 uppercase">活动大标题</label><input type="text" id="configTitle" class="input-premium"></div>
-                        <div><label class="block text-[11px] font-bold text-gray-500 mb-2 uppercase">活动副标题</label><input type="text" id="configSubtitle" class="input-premium"></div>
+                        <!-- 新增：支持配置首页的主标题和副标题 -->
+                        <div><label class="block text-[11px] font-bold text-gray-500 mb-2 uppercase">前台主标题 (空格换行)</label><input type="text" id="configTitle" class="input-premium" placeholder="如：定制梦想空间 赢取专属家居礼遇"></div>
+                        <div><label class="block text-[11px] font-bold text-gray-500 mb-2 uppercase">前台辅助说明文案</label><input type="text" id="configSubtitle" class="input-premium" placeholder="如：完成定制家具预约，即可参与幸运抽奖"></div>
                     </div>
                     <div><label class="block text-[11px] font-bold text-gray-500 mb-2 uppercase">收款/营销引导话术</label><input type="text" id="configPaymentCopy" class="input-premium"></div>
 
@@ -57,7 +56,7 @@
                         <h3 class="text-sm font-bold text-gray-800 mb-4">Logo 素材链接管理</h3>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div><label class="block text-[10px] text-gray-400 mb-1">彩色主 Logo (大转盘中心)</label><input type="text" id="logoColorUrl" class="input-premium text-xs"></div>
-                            <div><label class="block text-[10px] text-gray-400 mb-1">深色版 Logo (浅色导航栏/海报)</label><input type="text" id="logoBlackUrl" class="input-premium text-xs"></div>
+                            <div><label class="block text-[10px] text-gray-400 mb-1">深色版 Logo (海报与浅色导航栏)</label><input type="text" id="logoBlackUrl" class="input-premium text-xs"></div>
                             <div><label class="block text-[10px] text-gray-400 mb-1">浅色版 Logo (深色页脚)</label><input type="text" id="logoWhiteUrl" class="input-premium text-xs"></div>
                         </div>
                         <div class="mt-4 pt-4 border-t border-gray-100">
@@ -139,7 +138,7 @@
 
         async function saveConfig() {
             const payload = { title: document.getElementById('configTitle').value, subtitle: document.getElementById('configSubtitle').value, paymentCopy: document.getElementById('configPaymentCopy').value, qrCodeUrl: document.getElementById('configQrCodeUrl').value, logoColorUrl: document.getElementById('logoColorUrl').value, logoBlackUrl: document.getElementById('logoBlackUrl').value, logoWhiteUrl: document.getElementById('logoWhiteUrl').value };
-            await fetch('/api/config', { method: 'POST', headers, body: JSON.stringify(payload) }); alert('已保存');
+            await fetch('/api/config', { method: 'POST', headers, body: JSON.stringify(payload) }); alert('已保存并同步至前台！');
         }
 
         function renderPrizes() {

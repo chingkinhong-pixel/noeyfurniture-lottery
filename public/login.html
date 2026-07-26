@@ -32,8 +32,11 @@
         </div>
 
         <div id="userForm">
-            <div class="relative mb-8">
-                <input type="text" id="userPhone" placeholder="请输入您的手机号" class="w-full px-4 py-4 bg-white/50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8C6A4F] focus:border-transparent transition-all placeholder-gray-400 text-gray-900">
+            <div class="relative mb-6">
+                <!-- 【修改】加入 maxlength 限制并绑定实时的键盘检测器 -->
+                <input type="text" id="userPhone" maxlength="11" oninput="validatePhoneRealTime(this, 'userPhoneErr')" placeholder="请输入您的手机号" class="w-full px-4 py-4 bg-white/50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8C6A4F] focus:border-transparent transition-all placeholder-gray-400 text-gray-900 font-mono text-lg tracking-wider">
+                <!-- 【新增】实时错误信息提示块 -->
+                <p id="userPhoneErr" class="text-xs text-red-500 mt-2 hidden tracking-widest pl-1"></p>
             </div>
             <button onclick="login(false)" class="w-full bg-[#1A1A1A] text-white py-4 rounded-lg hover:bg-[#8C6A4F] transition-colors duration-300 font-medium tracking-widest text-sm uppercase">
                 立即开启专属礼遇
@@ -42,7 +45,10 @@
 
         <div id="adminForm" class="hidden">
             <div class="text-xs text-center text-gray-500 mb-6 tracking-widest uppercase">System Management</div>
-            <input type="text" id="adminPhone" placeholder="管理员账号" class="w-full px-4 py-3 bg-white/50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black mb-4 transition-all">
+            <div class="relative mb-4">
+                <input type="text" id="adminPhone" maxlength="11" oninput="validatePhoneRealTime(this, 'adminPhoneErr')" placeholder="管理员账号" class="w-full px-4 py-3 bg-white/50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition-all font-mono tracking-wider">
+                <p id="adminPhoneErr" class="text-xs text-red-500 mt-1 hidden tracking-widest pl-1"></p>
+            </div>
             <input type="password" id="adminPwd" placeholder="管理密码" class="w-full px-4 py-3 bg-white/50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black mb-8 transition-all">
             <button onclick="login(true)" class="w-full bg-[#1A1A1A] text-white py-4 rounded-lg hover:bg-black transition-colors duration-300 font-medium tracking-widest text-sm uppercase shadow-lg">
                 进入中枢
@@ -53,7 +59,6 @@
     <script>
         let isAdminView = false;
         
-        // 【新增】解析邀请码并在有人点击时即刻增加分享人的访问量统计
         const urlParams = new URLSearchParams(window.location.search);
         const inviteCode = urlParams.get('invite');
         if(inviteCode) {
@@ -81,11 +86,48 @@
             document.getElementById('adminForm').classList.toggle('hidden');
         }
 
+        // 【新增】实时手机号码过滤与校验逻辑
+        function validatePhoneRealTime(inputElement, errorElementId) {
+            // 1. 强制过滤非数字，防止粘贴了字母或特殊符号
+            let val = inputElement.value.replace(/\D/g, ''); 
+            inputElement.value = val;
+            
+            const errEl = document.getElementById(errorElementId);
+            const regex = /^1[3-9]\d{9}$/;
+
+            if (val.length === 0) {
+                errEl.classList.add('hidden');
+            } else if (val.length === 11) {
+                // 如果凑齐了 11 位，检测是否为合法真实号段
+                if (!regex.test(val)) {
+                    errEl.classList.remove('hidden');
+                    errEl.innerText = "请输入正确的11位手机号码";
+                } else {
+                    errEl.classList.add('hidden'); // 正确则隐藏红字
+                }
+            } else {
+                // 如果没凑齐11位，但是第一位输错，立刻拦截
+                if (val[0] !== '1') {
+                    errEl.classList.remove('hidden');
+                    errEl.innerText = "手机号必须以1开头";
+                } else {
+                    errEl.classList.add('hidden');
+                }
+            }
+        }
+
         async function login(isAdminLogin) {
             const phone = isAdminLogin ? document.getElementById('adminPhone').value : document.getElementById('userPhone').value;
             const password = isAdminLogin ? document.getElementById('adminPwd').value : "";
             
             if (!phone) return alert('请输入手机号');
+
+            // 【修改】前端提交阶段的终极验证，防止错误数据发往后端
+            const phoneRegex = /^1[3-9]\d{9}$/;
+            if (!phoneRegex.test(phone)) {
+                alert("请输入有效手机号参与活动");
+                return;
+            }
 
             const btn = event.target;
             const originalText = btn.innerText;
@@ -93,7 +135,6 @@
             btn.disabled = true;
 
             try {
-                // 【修改】将 invite 邀请码一同发送给后端
                 const res = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

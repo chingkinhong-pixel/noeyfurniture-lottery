@@ -33,7 +33,9 @@ const userSchema = new mongoose.Schema({
     claimInfo: { userName: String, city: String, stage: String, layout: String, budget: String },
     shareStatus: { type: Number, default: 0 }, 
     invitees: [{ type: String }],              
-    clickCount: { type: Number, default: 0 }   
+    clickCount: { type: Number, default: 0 },
+    // 【新增】手机号有效性状态标记
+    phoneVerified: { type: Boolean, default: true }
 });
 const User = mongoose.model('User', userSchema);
 
@@ -46,9 +48,7 @@ const customerSchema = new mongoose.Schema({
     budget: { type: String, default: "未确定" },
     layout: { type: String, default: "未确定" },
     needType: { type: String, default: "未确定" },
-    // 【修改】拓展了跟进漏斗的状态
     followUpStatus: { type: String, default: "新客户" },
-    // 【新增】客户标签
     tags: { type: [String], default: [] },
     remark: { type: String, default: "" }
 });
@@ -67,7 +67,6 @@ const RewardRecord = mongoose.model('RewardRecord', rewardRecordSchema);
 const prizeSchema = new mongoose.Schema({
     name: { type: String, required: true },
     weight: { type: Number, required: true },
-    // 【新增】奖品真实成本核算
     cost: { type: Number, default: 0 }
 });
 const Prize = mongoose.model('Prize', prizeSchema);
@@ -79,7 +78,7 @@ const configSchema = new mongoose.Schema({
 const Config = mongoose.model('Config', configSchema);
 
 // ==========================================
-// 3. 自动初始化数据
+// 3. 自动初始化与异常数据清洗
 // ==========================================
 async function initData() {
     try {
@@ -105,6 +104,21 @@ async function initData() {
                 brandPhilosophy: "以设计回应生活，以品质兑现承诺", logoColorUrl: "https://cdn.phototourl.com/free/2026-07-22-3304ec9f-26ef-4847-b0b1-f9287f713966.png", logoBlackUrl: "https://cdn.phototourl.com/free/2026-07-22-9af23acf-27a4-46c1-b357-9c86c6911389.png", logoWhiteUrl: "https://cdn.phototourl.com/free/2026-07-22-2a300550-48b9-41fb-acd5-778e3e3af16e.png"
             });
         }
+
+        // 【新增】启动时自动清洗扫描异常手机号数据
+        const allUsers = await User.find();
+        const phoneRegex = /^1[3-9]\d{9}$/;
+        let invalidCount = 0;
+        for (let u of allUsers) {
+            if (!phoneRegex.test(u.phone) && u.phoneVerified !== false) {
+                await User.updateOne({ _id: u._id }, { phoneVerified: false });
+                invalidCount++;
+            } else if (phoneRegex.test(u.phone) && u.phoneVerified !== true) {
+                await User.updateOne({ _id: u._id }, { phoneVerified: true });
+            }
+        }
+        if (invalidCount > 0) console.log(`🧹 数据清洗：发现并标记了 ${invalidCount} 个异常手机号账号`);
+
     } catch (err) { console.error("初始化数据失败:", err); }
 }
 setTimeout(initData, 2000);
@@ -144,9 +158,18 @@ app.post('/api/invite/click', async (req, res) => {
     if (invite) await User.updateOne({ phone: invite, role: 'user' }, { $inc: { clickCount: 1 } }).catch(()=>{});
     res.json({ success: true });
 });
+
+// 【核心修改】登录与注册逻辑，加入强校验
 app.post('/api/login', async (req, res) => {
     try {
         const { phone, password, isAdminLogin, invite } = req.body;
+        
+        // 1. 后端二次强制校验手机号（阻断工具绕过）
+        const phoneRegex = /^1[3-9]\d{9}$/;
+        if (!phone || !phoneRegex.test(phone)) {
+            return res.status(400).json({ error: '手机号格式错误' });
+        }
+
         let user = await User.findOne({ phone: phone });
 
         if (isAdminLogin) {
@@ -154,8 +177,10 @@ app.post('/api/login', async (req, res) => {
             return res.json({ token: user.phone, role: user.role });
         } else {
             if (user && user.role === 'admin') return res.status(403).json({ error: '管理员请通过专属通道登录' });
+            
+            // 2. 防重注册机制：如果用户不存在，则创建；已存在，则跳过创建，直接进入原账号
             if (!user) {
-                user = await User.create({ phone, role: 'user', chances: 1, rewards: [], pendingPrize: "", registerTime: new Date().toLocaleString() });
+                user = await User.create({ phone, role: 'user', chances: 1, rewards: [], pendingPrize: "", phoneVerified: true, registerTime: new Date().toLocaleString() });
                 if (invite && invite !== phone) {
                     const inviter = await User.findOne({ phone: invite, role: 'user' });
                     if (inviter && !inviter.invitees.includes(phone)) {
@@ -176,6 +201,7 @@ app.post('/api/login', async (req, res) => {
         }
     } catch (err) { res.status(500).json({ error: '服务器错误' }); }
 });
+
 app.get('/api/user', async (req, res) => {
     const user = await User.findOne({ phone: req.headers.authorization });
     user ? res.json(user) : res.status(404).json({ error: '用户不存在' });
@@ -234,7 +260,7 @@ app.post('/api/abandon', async (req, res) => {
 });
 
 // ==========================================
-// 6. 后台数据分析聚合中枢 API (新增)
+// 6. 后台数据分析聚合中枢 API 
 // ==========================================
 app.get('/api/admin/dashboard', requireAdmin, async (req, res) => {
     try {
@@ -245,17 +271,13 @@ app.get('/api/admin/dashboard', requireAdmin, async (req, res) => {
 
         const todayStr = new Date().toLocaleDateString();
 
-        // 1. 用户数据
         const totalUsers = users.length;
         const todayNewUsers = users.filter(u => u.registerTime && u.registerTime.includes(todayStr)).length;
-        
-        // 2. 抽奖数据
         const totalDraws = records.length;
         const todayDraws = records.filter(r => r.winTime && r.winTime.includes(todayStr)).length;
         const remainingChances = users.reduce((sum, u) => sum + (u.chances || 0), 0);
         const avgDraws = totalUsers > 0 ? (totalDraws / totalUsers).toFixed(1) : 0;
 
-        // 3. 奖品分布与成本核算
         let totalCost = 0;
         const prizeStats = {};
         prizes.forEach(p => { prizeStats[p.name] = { count: 0, cost: p.cost || 0 }; });
@@ -265,21 +287,16 @@ app.get('/api/admin/dashboard', requireAdmin, async (req, res) => {
                 prizeStats[r.prizeName].count++;
                 totalCost += prizeStats[r.prizeName].cost;
             } else {
-                // 处理可能存在的老数据或已删除的奖品
                 prizeStats[r.prizeName] = { count: 1, cost: 0 };
             }
         });
 
-        // 4. 营销转化分析 (ROI)
         const totalCustomers = customers.length;
         const cac = totalCustomers > 0 ? (totalCost / totalCustomers).toFixed(2) : 0;
-
-        // 5. 分享裂变分析
         const sharers = users.filter(u => u.shareStatus > 0 || u.clickCount > 0 || u.invitees.length > 0);
         const totalShareClicks = sharers.reduce((sum, u) => sum + (u.clickCount || 0), 0);
         const totalShareRegisters = sharers.reduce((sum, u) => sum + (u.invitees ? u.invitees.length : 0), 0);
 
-        // 6. 客户状态漏斗
         const funnel = { '新客户': 0, '未联系': 0, '已咨询': 0, '已量房': 0, '已报价': 0, '已成交': 0, '已完成安装': 0, '暂无需求': 0 };
         customers.forEach(c => {
             const status = c.followUpStatus || '新客户';
@@ -316,7 +333,7 @@ app.post('/api/admin/prizes', requireAdmin, async (req, res) => {
     await Prize.deleteMany({}); await Prize.insertMany(req.body); res.json({ success: true });
 });
 app.get('/api/admin/users', requireAdmin, async (req, res) => {
-    const users = await User.find({ role: 'user' }).select('phone chances registerTime rewards');
+    const users = await User.find({ role: 'user' }).select('phone chances registerTime rewards phoneVerified');
     const admin = await User.findOne({ role: 'admin' }).select('phone');
     const prizes = await Prize.find();
     res.json({ users, admin, prizes });

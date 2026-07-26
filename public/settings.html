@@ -14,6 +14,8 @@
         .premium-card { background: white; border: 1px solid #EEEEEE; border-radius: 8px; padding: 24px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02); }
         .input-premium { width: 100%; border: 1px solid #E4E4E7; border-radius: 6px; padding: 10px 12px; font-size: 13px; background-color: #FAFAFA; transition: all 0.2s; }
         .input-premium:focus { background-color: #FFFFFF; border-color: #1A1A1A; outline: none; box-shadow: 0 0 0 1px #1A1A1A; }
+        /* 删除线样式 */
+        .strike { text-decoration: line-through; opacity: 0.5; }
     </style>
 </head>
 <body class="min-h-screen pb-12">
@@ -79,25 +81,40 @@
         </div>
 
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            <div class="premium-card flex flex-col h-[700px]">
+            <div class="premium-card flex flex-col h-[800px]">
                 <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
                     <div>
-                        <h2 class="text-sm font-bold tracking-widest uppercase flex items-center gap-2 text-gray-800">抽奖权限管理库</h2>
-                        <p class="text-[10px] text-gray-400 mt-1">控制用户抽奖次数</p>
+                        <h2 class="text-sm font-bold tracking-widest uppercase flex items-center gap-2 text-gray-800">抽奖权限及账号管理库</h2>
+                        <p class="text-[10px] text-gray-400 mt-1">控制用户次数及防滥用清理</p>
                     </div>
-                    <div class="relative">
-                        <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-                        <input type="text" id="userSearch" oninput="handleUserSearch(this.value)" placeholder="搜索手机号..." class="pl-9 pr-4 py-1.5 text-xs border border-gray-200 rounded bg-gray-50 focus:bg-white focus:outline-none transition w-48">
+                    <div class="flex items-center gap-2">
+                         <select id="userStatusFilter" onchange="userStatusFilter=this.value; userCurrentPage=1; renderUsers()" class="border border-gray-200 rounded text-xs py-1 px-2 focus:outline-none bg-gray-50">
+                             <option value="all">全部用户</option>
+                             <option value="active">正常用户</option>
+                             <option value="invalid">异常号码拦截</option>
+                             <option value="deleted">已失效账号</option>
+                         </select>
+                        <div class="relative">
+                            <i class="ph ph-magnifying-glass absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" id="userSearch" oninput="handleUserSearch(this.value)" placeholder="搜索手机号..." class="pl-7 pr-3 py-1.5 text-xs border border-gray-200 rounded bg-gray-50 focus:bg-white focus:outline-none transition w-36">
+                        </div>
                     </div>
                 </div>
-                <div id="usersList" class="flex-grow overflow-y-auto space-y-3 pr-2"></div>
+                <!-- 批量删除控制栏 -->
+                <div class="flex justify-between items-center bg-red-50 p-2 rounded mb-3 border border-red-100 hidden" id="batchActionBox">
+                    <span class="text-xs text-red-800 font-bold" id="batchSelectCount">已选中 0 人</span>
+                    <button onclick="batchDeleteUsers()" class="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition">批量删除/冻结关联记录</button>
+                </div>
+
+                <div id="usersList" class="flex-grow overflow-y-auto space-y-2 pr-2"></div>
+                
                 <div class="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
                     <div class="text-[11px] text-gray-400" id="userPageInfo"></div>
                     <div class="flex gap-2" id="userPagination"></div>
                 </div>
             </div>
 
-            <div class="premium-card flex flex-col h-[700px]">
+            <div class="premium-card flex flex-col h-[800px]">
                 <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
                     <div>
                         <h2 class="text-sm font-bold tracking-widest uppercase flex items-center gap-2 text-gray-800">奖品陈列及成本配置</h2>
@@ -113,13 +130,29 @@
         </div>
     </div>
 
+    <!-- 用户详情信息弹窗 -->
+    <div id="userDetailModal" class="fixed inset-0 bg-black/60 z-[100] hidden flex items-center justify-center">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full shadow-2xl">
+            <h3 class="text-lg font-bold mb-4 border-b pb-2">用户资产档案</h3>
+            <div id="userDetailContent" class="space-y-4 text-sm"></div>
+            <div class="mt-8 text-right">
+                <button onclick="document.getElementById('userDetailModal').classList.add('hidden')" class="px-6 py-2 border rounded hover:bg-gray-50 transition">关闭</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const token = localStorage.getItem('token');
         if (!token) window.location.href = '/login.html';
         const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
         
         let currentData = { prizes: [], users: [] };
-        let userSearchQuery = ""; let userCurrentPage = 1; const userPageSize = 10;
+        
+        let userSearchQuery = ""; 
+        let userStatusFilter = "all";
+        let userCurrentPage = 1; 
+        const userPageSize = 10;
+        let selectedPhones = new Set(); // 批量选中的手机号
 
         async function init() {
             try {
@@ -165,33 +198,119 @@
         async function savePrizes() { await fetch('/api/admin/prizes', { method: 'POST', headers, body: JSON.stringify(currentData.prizes) }); alert('奖品池与成本已同步！'); }
 
         function handleUserSearch(query) { userSearchQuery = query.trim(); userCurrentPage = 1; renderUsers(); }
+
+        // 多选逻辑处理
+        function toggleUserSelection(phone) {
+            if(selectedPhones.has(phone)) selectedPhones.delete(phone);
+            else selectedPhones.add(phone);
+            updateBatchUI();
+        }
+        function updateBatchUI() {
+            const box = document.getElementById('batchActionBox');
+            if(selectedPhones.size > 0) {
+                box.classList.remove('hidden');
+                document.getElementById('batchSelectCount').innerText = `已选中 ${selectedPhones.size} 个操作对象`;
+            } else {
+                box.classList.add('hidden');
+            }
+        }
+
+        // 获取状态展示标签
+        function getStatusBadge(u) {
+            if(u.status === 'invalid') return '<span class="text-[9px] bg-red-100 text-red-600 px-1 py-0.5 rounded ml-2">异常号码拦截</span>';
+            if(u.status === 'deleted') return '<span class="text-[9px] bg-gray-200 text-gray-500 px-1 py-0.5 rounded ml-2">冻结/保护删除</span>';
+            return '<span class="text-[9px] bg-green-100 text-green-700 px-1 py-0.5 rounded ml-2">正常流转</span>';
+        }
+
         function renderUsers() {
             let filteredUsers = currentData.users;
-            if (userSearchQuery) filteredUsers = filteredUsers.filter(u => u.phone.includes(userSearchQuery));
-            const total = filteredUsers.length; const totalPages = Math.ceil(total / userPageSize) || 1;
+            
+            // 状态多维过滤
+            if (userStatusFilter !== 'all') {
+                filteredUsers = filteredUsers.filter(u => u.status === userStatusFilter);
+            }
+            // 文本检索
+            if (userSearchQuery) {
+                filteredUsers = filteredUsers.filter(u => u.phone.includes(userSearchQuery));
+            }
+            
+            const total = filteredUsers.length; 
+            const totalPages = Math.ceil(total / userPageSize) || 1;
             if (userCurrentPage > totalPages) userCurrentPage = totalPages;
-            const start = (userCurrentPage - 1) * userPageSize; const paginatedUsers = filteredUsers.slice(start, start + userPageSize);
+            const start = (userCurrentPage - 1) * userPageSize; 
+            const paginatedUsers = filteredUsers.slice(start, start + userPageSize);
 
             document.getElementById('usersList').innerHTML = paginatedUsers.map(u => `
-                <div class="flex items-center justify-between p-4 border border-[#EEEEEE] rounded bg-white hover:border-[#8C6A4F]/50 transition">
-                    <div>
-                        <div class="font-bold text-sm text-gray-800">${u.phone}</div>
-                        <div class="text-[10px] text-gray-400 mt-1">已中奖: ${u.rewards ? u.rewards.length : 0} 次</div>
-                    </div>
-                    <div class="flex gap-4 items-center">
-                        <div class="flex flex-col items-center">
-                            <span class="text-[10px] text-gray-400 mb-1">抽奖机会</span>
-                            <div class="border border-gray-200 rounded"><input type="number" value="${u.chances}" onchange="updateUserChanceAPI('${u.phone}', this.value)" class="w-12 py-1 text-sm text-center focus:outline-none bg-transparent font-bold text-[#8C6A4F]"></div>
+                <div class="flex flex-col border border-[#EEEEEE] rounded bg-white hover:border-[#8C6A4F]/30 transition ${u.status==='deleted'?'strike':''}">
+                    <!-- 上方基础行 -->
+                    <div class="flex items-center justify-between p-3">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" ${selectedPhones.has(u.phone)?'checked':''} onchange="toggleUserSelection('${u.phone}')" class="w-4 h-4 text-[#8C6A4F] rounded border-gray-300">
+                            <div>
+                                <div class="font-bold text-sm text-gray-800 flex items-center">${u.phone} ${getStatusBadge(u)}</div>
+                                <div class="text-[10px] text-gray-400 mt-0.5">注册于 ${u.registerTime ? u.registerTime.split(' ')[0] : '未知'}</div>
+                            </div>
                         </div>
-                        <button onclick="resetUserRewards('${u.phone}')" class="text-[11px] text-gray-400 hover:text-red-500 border border-gray-200 px-2 py-1 rounded transition">清空</button>
+                        <div class="flex gap-4 items-center">
+                            <div class="flex flex-col items-center">
+                                <span class="text-[9px] text-gray-400 mb-0.5">剩余机会</span>
+                                <input type="number" value="${u.chances}" onchange="updateUserChanceAPI('${u.phone}', this.value)" class="w-10 border-b border-gray-200 py-0.5 text-sm text-center focus:outline-none bg-transparent font-bold text-[#8C6A4F] ${u.status==='deleted'?'pointer-events-none':''}">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 下方详细操作行 -->
+                    <div class="bg-gray-50 px-3 py-2 border-t border-gray-100 flex justify-between items-center">
+                        <span class="text-[10px] text-gray-500">已领奖励: ${u.rewards ? u.rewards.length : 0} 份</span>
+                        <div class="flex gap-2">
+                             <button onclick="viewUserDetails('${u.phone}')" class="text-[10px] text-[#8C6A4F] hover:underline">查看归属资产</button>
+                             ${u.status !== 'deleted' ? `<button onclick="confirmSingleDelete('${u.phone}')" class="text-[10px] text-red-500 hover:underline">销毁拦截</button>` : ''}
+                        </div>
                     </div>
                 </div>`).join('') || `<div class="text-center text-xs text-gray-400 py-10">无匹配数据</div>`;
 
-            document.getElementById('userPageInfo').innerText = `共 ${total} 人，第 ${userCurrentPage}/${totalPages} 页`;
+            document.getElementById('userPageInfo').innerText = `发现 ${total} 个单位记录，第 ${userCurrentPage}/${totalPages} 页`;
             document.getElementById('userPagination').innerHTML = `
                 <button onclick="userCurrentPage--; renderUsers()" ${userCurrentPage === 1 ? 'disabled' : ''} class="px-2 py-1 border rounded text-xs disabled:opacity-30">上一页</button>
                 <button onclick="userCurrentPage++; renderUsers()" ${userCurrentPage === totalPages ? 'disabled' : ''} class="px-2 py-1 border rounded text-xs disabled:opacity-30">下一页</button>`;
         }
+
+        function viewUserDetails(phone) {
+            const u = currentData.users.find(x => x.phone === phone);
+            if(!u) return;
+            const content = `
+                <p><strong>账号体系:</strong> ${u.phone} <span class="text-xs ml-2 text-gray-500">(${u.status})</span></p>
+                <p><strong>关联记录数:</strong> ${u.rewards.length}</p>
+                <div class="bg-gray-50 p-3 rounded text-xs text-gray-600 mt-2 h-32 overflow-y-auto">
+                    ${u.rewards.map(r => `<div>[${r.time.split(' ')[0]}] ${r.name}</div>`).join('') || '尚无中奖足迹'}
+                </div>
+            `;
+            document.getElementById('userDetailContent').innerHTML = content;
+            document.getElementById('userDetailModal').classList.remove('hidden');
+        }
+
+        async function confirmSingleDelete(phone) {
+            if(!confirm(`⚠️ 安全警告 ⚠️\n您即将删除用户 ${phone}。\n如果该用户有正在跟进的业务记录将执行软删除并保留客户节点数据；\n如果是彻底的异常号码则执行物理清空。\n是否继续？`)) return;
+            
+            try {
+                const res = await fetch('/api/admin/users/batch-delete', { method: 'POST', headers, body: JSON.stringify({ phones: [phone] }) });
+                const data = await res.json();
+                alert(`销毁报告：\n物理深层清理：${data.deletedHard}条\n数据软链冻结：${data.deletedSoft}条`);
+                selectedPhones.clear(); updateBatchUI(); init(); // 刷新核心数据池
+            } catch(e) { alert('操作中止'); }
+        }
+
+        async function batchDeleteUsers() {
+            if(selectedPhones.size === 0) return;
+            if(!confirm(`⚠️ 批量操作确认 ⚠️\n您即将清理这 ${selectedPhones.size} 个选中的数据。\n系统会自动识别哪些是异常死链予以粉碎，哪些有关联跟进仅冻结权限。\n确定执行吗？`)) return;
+            
+            try {
+                const res = await fetch('/api/admin/users/batch-delete', { method: 'POST', headers, body: JSON.stringify({ phones: Array.from(selectedPhones) }) });
+                const data = await res.json();
+                alert(`批量销毁报告：\n物理深层清理：${data.deletedHard} 户\n数据软链冻结：${data.deletedSoft} 户`);
+                selectedPhones.clear(); updateBatchUI(); init(); 
+            } catch(e) { alert('批量操作失败，可能存在网络超时'); }
+        }
+
 
         async function updateUserChanceAPI(phone, newChance) {
             try {
@@ -199,10 +318,7 @@
                 const index = currentData.users.findIndex(u => u.phone === phone); if(index > -1) currentData.users[index].chances = Number(newChance);
             } catch(e) {}
         }
-        async function resetUserRewards(phone) {
-            if(!confirm(`确定清空 ${phone} 的所有记录？`)) return;
-            await fetch('/api/admin/reset-rewards', { method: 'POST', headers, body: JSON.stringify({ phone }) }); alert('已重置'); init(); 
-        }
+        
         async function saveAdminAccount() {
             const phone = document.getElementById('adminPhoneInput').value; const password = document.getElementById('adminPasswordInput').value;
             if(!phone) return;
@@ -210,6 +326,7 @@
             if(phone !== localStorage.getItem('token')) localStorage.setItem('token', phone);
         }
         function logout() { localStorage.removeItem('token'); window.location.href = '/login.html'; }
+        
         init();
     </script>
 </body>

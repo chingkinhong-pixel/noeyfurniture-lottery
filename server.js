@@ -34,8 +34,9 @@ const userSchema = new mongoose.Schema({
     shareStatus: { type: Number, default: 0 }, 
     invitees: [{ type: String }],              
     clickCount: { type: Number, default: 0 },
-    // 【新增】手机号有效性状态标记
-    phoneVerified: { type: Boolean, default: true }
+    phoneVerified: { type: Boolean, default: true },
+    // 【新增】用户状态：active正常, deleted已软删除, invalid异常
+    status: { type: String, default: 'active' }
 });
 const User = mongoose.model('User', userSchema);
 
@@ -105,20 +106,16 @@ async function initData() {
             });
         }
 
-        // 【新增】启动时自动清洗扫描异常手机号数据
-        const allUsers = await User.find();
+        // 启动时自动清洗：将过去非法手机号直接打上 invalid 标签以便后台一键清零
+        const allUsers = await User.find({ role: 'user' });
         const phoneRegex = /^1[3-9]\d{9}$/;
-        let invalidCount = 0;
         for (let u of allUsers) {
-            if (!phoneRegex.test(u.phone) && u.phoneVerified !== false) {
-                await User.updateOne({ _id: u._id }, { phoneVerified: false });
-                invalidCount++;
-            } else if (phoneRegex.test(u.phone) && u.phoneVerified !== true) {
-                await User.updateOne({ _id: u._id }, { phoneVerified: true });
+            if (!phoneRegex.test(u.phone) && u.status === 'active') {
+                await User.updateOne({ _id: u._id }, { status: 'invalid', phoneVerified: false });
+            } else if (phoneRegex.test(u.phone) && u.status === 'invalid') {
+                await User.updateOne({ _id: u._id }, { status: 'active', phoneVerified: true });
             }
         }
-        if (invalidCount > 0) console.log(`🧹 数据清洗：发现并标记了 ${invalidCount} 个异常手机号账号`);
-
     } catch (err) { console.error("初始化数据失败:", err); }
 }
 setTimeout(initData, 2000);
@@ -139,7 +136,7 @@ const requireAdmin = async (req, res, next) => {
 app.get('/api/config', async (req, res) => { res.json(await Config.findOne({ identifier: "global" }) || {}); });
 app.get('/api/prizes', async (req, res) => { res.json(await Prize.find()); });
 app.get('/api/stats', async (req, res) => {
-    const users = await User.find({ role: 'user' });
+    const users = await User.find({ role: 'user', status: 'active' });
     res.json({ totalUsers: users.length, totalRewards: users.reduce((sum, u) => sum + u.rewards.length, 0) });
 });
 app.get('/api/public/winners', async (req, res) => {
@@ -159,16 +156,12 @@ app.post('/api/invite/click', async (req, res) => {
     res.json({ success: true });
 });
 
-// 【核心修改】登录与注册逻辑，加入强校验
 app.post('/api/login', async (req, res) => {
     try {
         const { phone, password, isAdminLogin, invite } = req.body;
         
-        // 1. 后端二次强制校验手机号（阻断工具绕过）
         const phoneRegex = /^1[3-9]\d{9}$/;
-        if (!phone || !phoneRegex.test(phone)) {
-            return res.status(400).json({ error: '手机号格式错误' });
-        }
+        if (!phone || !phoneRegex.test(phone)) return res.status(400).json({ error: '手机号格式错误' });
 
         let user = await User.findOne({ phone: phone });
 
@@ -177,12 +170,12 @@ app.post('/api/login', async (req, res) => {
             return res.json({ token: user.phone, role: user.role });
         } else {
             if (user && user.role === 'admin') return res.status(403).json({ error: '管理员请通过专属通道登录' });
+            if (user && user.status === 'deleted') return res.status(403).json({ error: '该账号已被冻结' });
             
-            // 2. 防重注册机制：如果用户不存在，则创建；已存在，则跳过创建，直接进入原账号
             if (!user) {
                 user = await User.create({ phone, role: 'user', chances: 1, rewards: [], pendingPrize: "", phoneVerified: true, registerTime: new Date().toLocaleString() });
                 if (invite && invite !== phone) {
-                    const inviter = await User.findOne({ phone: invite, role: 'user' });
+                    const inviter = await User.findOne({ phone: invite, role: 'user', status: 'active' });
                     if (inviter && !inviter.invitees.includes(phone)) {
                         inviter.invitees.push(phone);
                         if (inviter.invitees.length >= 3 && inviter.shareStatus === 0) {
@@ -203,12 +196,12 @@ app.post('/api/login', async (req, res) => {
 });
 
 app.get('/api/user', async (req, res) => {
-    const user = await User.findOne({ phone: req.headers.authorization });
-    user ? res.json(user) : res.status(404).json({ error: '用户不存在' });
+    const user = await User.findOne({ phone: req.headers.authorization, status: 'active' });
+    user ? res.json(user) : res.status(404).json({ error: '用户不存在或被封禁' });
 });
 app.post('/api/draw', async (req, res) => {
     try {
-        const user = await User.findOne({ phone: req.headers.authorization });
+        const user = await User.findOne({ phone: req.headers.authorization, status: 'active' });
         if (!user) return res.status(404).json({ error: '用户不存在' });
         if (user.pendingPrize) return res.status(400).json({ error: '您有尚未填写的奖品', hasPending: true });
         if (user.chances <= 0) return res.status(400).json({ error: '没有抽奖次数了' });
@@ -264,7 +257,7 @@ app.post('/api/abandon', async (req, res) => {
 // ==========================================
 app.get('/api/admin/dashboard', requireAdmin, async (req, res) => {
     try {
-        const users = await User.find({ role: 'user' });
+        const users = await User.find({ role: 'user', status: 'active' });
         const records = await RewardRecord.find();
         const customers = await Customer.find();
         const prizes = await Prize.find();
@@ -311,10 +304,7 @@ app.get('/api/admin/dashboard', requireAdmin, async (req, res) => {
             shares: { sharers: sharers.length, clicks: totalShareClicks, registers: totalShareRegisters },
             funnel
         });
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: "聚合数据失败" });
-    }
+    } catch (e) { res.status(500).json({ error: "聚合数据失败" }); }
 });
 
 // ==========================================
@@ -332,8 +322,10 @@ app.post('/api/admin/account', requireAdmin, async (req, res) => {
 app.post('/api/admin/prizes', requireAdmin, async (req, res) => {
     await Prize.deleteMany({}); await Prize.insertMany(req.body); res.json({ success: true });
 });
+
+// 【核心修改】读取用户接口，拉取所有用户包括被软删除的
 app.get('/api/admin/users', requireAdmin, async (req, res) => {
-    const users = await User.find({ role: 'user' }).select('phone chances registerTime rewards phoneVerified');
+    const users = await User.find({ role: 'user' }).select('phone chances registerTime rewards phoneVerified status');
     const admin = await User.findOne({ role: 'admin' }).select('phone');
     const prizes = await Prize.find();
     res.json({ users, admin, prizes });
@@ -347,6 +339,40 @@ app.post('/api/admin/reset-rewards', requireAdmin, async (req, res) => {
     await RewardRecord.deleteMany({ phone: req.body.phone });
     res.json({ success: true });
 });
+
+// 【核心新增】智能批量软删除/硬删除用户接口
+app.post('/api/admin/users/batch-delete', requireAdmin, async (req, res) => {
+    try {
+        const { phones } = req.body;
+        if (!phones || !phones.length) return res.status(400).json({ error: '无效请求' });
+
+        let deletedHard = 0; let deletedSoft = 0;
+
+        for (let phone of phones) {
+            // 查证是否在其他集合有绑定
+            const hasRewards = await RewardRecord.exists({ phone });
+            const hasCustomer = await Customer.exists({ phone, followUpStatus: { $ne: '暂无需求' } });
+
+            if (hasRewards || hasCustomer) {
+                // 如果有关联营销进度，进行软删除保护
+                await User.updateOne({ phone, role: 'user' }, { status: 'deleted' });
+                deletedSoft++;
+            } else {
+                // 如果完全是没有业务价值的纯空壳/异常号码，进行物理硬删除清理磁盘
+                await User.deleteOne({ phone, role: 'user' });
+                // 清理可能遗留的空客户档案
+                await Customer.deleteOne({ phone });
+                deletedHard++;
+            }
+        }
+        res.json({ success: true, deletedHard, deletedSoft });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: '批量删除失败' });
+    }
+});
+
+
 app.get('/api/admin/customers', requireAdmin, async (req, res) => {
     const customers = await Customer.find().sort({ registerTime: -1 });
     res.json(customers);

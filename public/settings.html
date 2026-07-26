@@ -14,8 +14,6 @@
         .premium-card { background: white; border: 1px solid #EEEEEE; border-radius: 8px; padding: 24px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02); }
         .input-premium { width: 100%; border: 1px solid #E4E4E7; border-radius: 6px; padding: 10px 12px; font-size: 13px; background-color: #FAFAFA; transition: all 0.2s; }
         .input-premium:focus { background-color: #FFFFFF; border-color: #1A1A1A; outline: none; box-shadow: 0 0 0 1px #1A1A1A; }
-        /* 删除线样式 */
-        .strike { text-decoration: line-through; opacity: 0.5; }
     </style>
 </head>
 <body class="min-h-screen pb-12">
@@ -85,14 +83,13 @@
                 <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
                     <div>
                         <h2 class="text-sm font-bold tracking-widest uppercase flex items-center gap-2 text-gray-800">抽奖权限及账号管理库</h2>
-                        <p class="text-[10px] text-gray-400 mt-1">控制用户次数及防滥用清理</p>
+                        <p class="text-[10px] text-red-600 mt-1 font-bold" id="abnormalCountLabel">计算中...</p>
                     </div>
                     <div class="flex items-center gap-2">
                          <select id="userStatusFilter" onchange="userStatusFilter=this.value; userCurrentPage=1; renderUsers()" class="border border-gray-200 rounded text-xs py-1 px-2 focus:outline-none bg-gray-50">
                              <option value="all">全部用户</option>
                              <option value="active">正常用户</option>
-                             <option value="invalid">异常号码拦截</option>
-                             <option value="deleted">已失效账号</option>
+                             <option value="invalid">异常号码用户</option>
                          </select>
                         <div class="relative">
                             <i class="ph ph-magnifying-glass absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
@@ -100,10 +97,10 @@
                         </div>
                     </div>
                 </div>
-                <!-- 批量删除控制栏 -->
+                
                 <div class="flex justify-between items-center bg-red-50 p-2 rounded mb-3 border border-red-100 hidden" id="batchActionBox">
                     <span class="text-xs text-red-800 font-bold" id="batchSelectCount">已选中 0 人</span>
-                    <button onclick="batchDeleteUsers()" class="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition">批量删除/冻结关联记录</button>
+                    <button onclick="batchDeleteUsers()" class="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition">删除选中异常用户</button>
                 </div>
 
                 <div id="usersList" class="flex-grow overflow-y-auto space-y-2 pr-2"></div>
@@ -118,7 +115,7 @@
                 <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
                     <div>
                         <h2 class="text-sm font-bold tracking-widest uppercase flex items-center gap-2 text-gray-800">奖品陈列及成本配置</h2>
-                        <p class="text-[10px] text-gray-400 mt-1">控制权重与单个奖品核算成本 (极其重要)</p>
+                        <p class="text-[10px] text-gray-400 mt-1">控制权重与单个奖品核算成本</p>
                     </div>
                     <button onclick="addPrize()" class="border border-gray-300 text-gray-700 text-xs px-3 py-1.5 rounded hover:bg-gray-50 flex items-center gap-1 transition"><i class="ph ph-plus"></i> 新增</button>
                 </div>
@@ -152,7 +149,7 @@
         let userStatusFilter = "all";
         let userCurrentPage = 1; 
         const userPageSize = 10;
-        let selectedPhones = new Set(); // 批量选中的手机号
+        let selectedPhones = new Set();
 
         async function init() {
             try {
@@ -166,6 +163,10 @@
 
                 currentData = await res.json();
                 if(currentData.admin) document.getElementById('adminPhoneInput').value = currentData.admin.phone;
+                
+                const abnormalCount = currentData.users.filter(u => u.status === 'invalid').length;
+                document.getElementById('abnormalCountLabel').innerText = abnormalCount > 0 ? `发现 ${abnormalCount} 个异常用户` : '未发现异常用户';
+                
                 renderPrizes(); renderUsers();
             } catch(e) { console.error("Error", e); }
         }
@@ -199,7 +200,6 @@
 
         function handleUserSearch(query) { userSearchQuery = query.trim(); userCurrentPage = 1; renderUsers(); }
 
-        // 多选逻辑处理
         function toggleUserSelection(phone) {
             if(selectedPhones.has(phone)) selectedPhones.delete(phone);
             else selectedPhones.add(phone);
@@ -215,21 +215,17 @@
             }
         }
 
-        // 获取状态展示标签
         function getStatusBadge(u) {
-            if(u.status === 'invalid') return '<span class="text-[9px] bg-red-100 text-red-600 px-1 py-0.5 rounded ml-2">异常号码拦截</span>';
-            if(u.status === 'deleted') return '<span class="text-[9px] bg-gray-200 text-gray-500 px-1 py-0.5 rounded ml-2">冻结/保护删除</span>';
-            return '<span class="text-[9px] bg-green-100 text-green-700 px-1 py-0.5 rounded ml-2">正常流转</span>';
+            if(u.status === 'invalid') return '<span class="text-[9px] bg-red-100 text-red-600 px-1 py-0.5 rounded ml-2">⚠ 异常手机号</span>';
+            return '<span class="text-[9px] bg-green-100 text-green-700 px-1 py-0.5 rounded ml-2">✓ 正常</span>';
         }
 
         function renderUsers() {
             let filteredUsers = currentData.users;
             
-            // 状态多维过滤
             if (userStatusFilter !== 'all') {
                 filteredUsers = filteredUsers.filter(u => u.status === userStatusFilter);
             }
-            // 文本检索
             if (userSearchQuery) {
                 filteredUsers = filteredUsers.filter(u => u.phone.includes(userSearchQuery));
             }
@@ -241,8 +237,7 @@
             const paginatedUsers = filteredUsers.slice(start, start + userPageSize);
 
             document.getElementById('usersList').innerHTML = paginatedUsers.map(u => `
-                <div class="flex flex-col border border-[#EEEEEE] rounded bg-white hover:border-[#8C6A4F]/30 transition ${u.status==='deleted'?'strike':''}">
-                    <!-- 上方基础行 -->
+                <div class="flex flex-col border border-[#EEEEEE] rounded bg-white hover:border-[#8C6A4F]/30 transition">
                     <div class="flex items-center justify-between p-3">
                         <div class="flex items-center gap-3">
                             <input type="checkbox" ${selectedPhones.has(u.phone)?'checked':''} onchange="toggleUserSelection('${u.phone}')" class="w-4 h-4 text-[#8C6A4F] rounded border-gray-300">
@@ -254,21 +249,20 @@
                         <div class="flex gap-4 items-center">
                             <div class="flex flex-col items-center">
                                 <span class="text-[9px] text-gray-400 mb-0.5">剩余机会</span>
-                                <input type="number" value="${u.chances}" onchange="updateUserChanceAPI('${u.phone}', this.value)" class="w-10 border-b border-gray-200 py-0.5 text-sm text-center focus:outline-none bg-transparent font-bold text-[#8C6A4F] ${u.status==='deleted'?'pointer-events-none':''}">
+                                <input type="number" value="${u.chances}" onchange="updateUserChanceAPI('${u.phone}', this.value)" class="w-10 border-b border-gray-200 py-0.5 text-sm text-center focus:outline-none bg-transparent font-bold text-[#8C6A4F]">
                             </div>
                         </div>
                     </div>
-                    <!-- 下方详细操作行 -->
                     <div class="bg-gray-50 px-3 py-2 border-t border-gray-100 flex justify-between items-center">
                         <span class="text-[10px] text-gray-500">已领奖励: ${u.rewards ? u.rewards.length : 0} 份</span>
                         <div class="flex gap-2">
-                             <button onclick="viewUserDetails('${u.phone}')" class="text-[10px] text-[#8C6A4F] hover:underline">查看归属资产</button>
-                             ${u.status !== 'deleted' ? `<button onclick="confirmSingleDelete('${u.phone}')" class="text-[10px] text-red-500 hover:underline">销毁拦截</button>` : ''}
+                             <button onclick="viewUserDetails('${u.phone}')" class="text-[10px] text-[#8C6A4F] hover:underline">查看详情</button>
+                             <button onclick="confirmSingleDelete('${u.phone}')" class="text-[10px] text-red-500 hover:underline">删除用户</button>
                         </div>
                     </div>
                 </div>`).join('') || `<div class="text-center text-xs text-gray-400 py-10">无匹配数据</div>`;
 
-            document.getElementById('userPageInfo').innerText = `发现 ${total} 个单位记录，第 ${userCurrentPage}/${totalPages} 页`;
+            document.getElementById('userPageInfo').innerText = `发现 ${total} 个记录，第 ${userCurrentPage}/${totalPages} 页`;
             document.getElementById('userPagination').innerHTML = `
                 <button onclick="userCurrentPage--; renderUsers()" ${userCurrentPage === 1 ? 'disabled' : ''} class="px-2 py-1 border rounded text-xs disabled:opacity-30">上一页</button>
                 <button onclick="userCurrentPage++; renderUsers()" ${userCurrentPage === totalPages ? 'disabled' : ''} class="px-2 py-1 border rounded text-xs disabled:opacity-30">下一页</button>`;
@@ -289,28 +283,40 @@
         }
 
         async function confirmSingleDelete(phone) {
-            if(!confirm(`⚠️ 安全警告 ⚠️\n您即将删除用户 ${phone}。\n如果该用户有正在跟进的业务记录将执行软删除并保留客户节点数据；\n如果是彻底的异常号码则执行物理清空。\n是否继续？`)) return;
+            const u = currentData.users.find(x => x.phone === phone);
+            const hasBusinessData = u && u.rewards && u.rewards.length > 0;
+            
+            let warningMsg = "";
+            if(hasBusinessData) {
+                warningMsg = `⚠️ 警告：该用户存在业务记录！\n此用户已中奖或拥有活动跟踪进度。\n请确认是否继续？\n删除该用户将同步彻底删除：\n- 用户基础资料\n- 客户跟进记录\n- 中奖流水记录\n- 分享裂变记录`;
+            } else {
+                warningMsg = `确认删除该用户？\n删除该用户将同步彻底删除：\n- 用户基础资料\n- 客户跟进记录\n- 中奖流水记录\n- 分享裂变记录\n是否继续？`;
+            }
+
+            if(!confirm(warningMsg)) return;
+            const reason = prompt("请输入删除原因（例如：异常手机号清理），可留空：", "异常号码清理");
             
             try {
-                const res = await fetch('/api/admin/users/batch-delete', { method: 'POST', headers, body: JSON.stringify({ phones: [phone] }) });
+                const res = await fetch('/api/admin/users/batch-delete', { method: 'POST', headers, body: JSON.stringify({ phones: [phone], reason }) });
                 const data = await res.json();
-                alert(`销毁报告：\n物理深层清理：${data.deletedHard}条\n数据软链冻结：${data.deletedSoft}条`);
-                selectedPhones.clear(); updateBatchUI(); init(); // 刷新核心数据池
+                alert(`成功处理级联删除：${data.deletedCount} 条主体数据及关联的业务记录已安全移除。`);
+                selectedPhones.clear(); updateBatchUI(); init(); 
             } catch(e) { alert('操作中止'); }
         }
 
         async function batchDeleteUsers() {
             if(selectedPhones.size === 0) return;
-            if(!confirm(`⚠️ 批量操作确认 ⚠️\n您即将清理这 ${selectedPhones.size} 个选中的数据。\n系统会自动识别哪些是异常死链予以粉碎，哪些有关联跟进仅冻结权限。\n确定执行吗？`)) return;
+            if(!confirm(`⚠️ 批量操作确认 ⚠️\n您即将同时强制级联清理这 ${selectedPhones.size} 个用户的所有底层数据和业务关联日志。\n确定执行吗？`)) return;
+            
+            const reason = prompt("请输入批量删除原因，留空则默认记录：", "后台批量级联清理");
             
             try {
-                const res = await fetch('/api/admin/users/batch-delete', { method: 'POST', headers, body: JSON.stringify({ phones: Array.from(selectedPhones) }) });
+                const res = await fetch('/api/admin/users/batch-delete', { method: 'POST', headers, body: JSON.stringify({ phones: Array.from(selectedPhones), reason }) });
                 const data = await res.json();
-                alert(`批量销毁报告：\n物理深层清理：${data.deletedHard} 户\n数据软链冻结：${data.deletedSoft} 户`);
+                alert(`批量销毁报告：\n成功剥离并物理销毁 ${data.deletedCount} 户关联数据。\n相关统计指标已同步在看板进行剔除。`);
                 selectedPhones.clear(); updateBatchUI(); init(); 
-            } catch(e) { alert('批量操作失败，可能存在网络超时'); }
+            } catch(e) { alert('批量操作失败'); }
         }
-
 
         async function updateUserChanceAPI(phone, newChance) {
             try {
